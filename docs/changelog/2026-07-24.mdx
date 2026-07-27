@@ -40,7 +40,7 @@ See the [networking overview](/networking/overview).
 
 **Bidirectional snapshot migration with `msb self downgrade`**
 
-Snapshots created on v0.6.6 and v0.6.7 are now fully interchangeable. On startup, explicit open, reindex, and archive load, microsandbox automatically migrates older `manifest.json` artifacts to the finalized `snapshot.json` descriptor, with mandatory sparse payload integrity and duplicate-key rejection. The original descriptor bytes are retained so a downgrade produces the exact prior artifact.
+Snapshots created on v0.6.6 and v0.6.7 are now fully interchangeable. Microsandbox automatically migrates older `manifest.json` artifacts to the finalized `snapshot.json` descriptor on startup, explicit open, reindex, and archive load, enforcing sparse payload integrity and rejecting duplicate keys. It retains the original descriptor bytes so a downgrade produces the exact prior artifact.
 
 `msb self downgrade 0.6.6 --yes` performs a durable, journaled downgrade with SHA-256 verification and a database backup. If the process is interrupted, startup refuses to continue until recovery finishes, so you cannot end up with a half-migrated store.
 
