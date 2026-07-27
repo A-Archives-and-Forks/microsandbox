@@ -63,12 +63,22 @@ export interface NativeBindings {
   readonly PatchBuilder: NapiBuilderCtor<NapiPatchBuilder>;
   readonly RegistryConfigBuilder: NapiBuilderCtor<NapiRegistryConfigBuilder>;
   readonly ImageBuilder: NapiBuilderCtor<NapiImageBuilder>;
+  readonly RootDiskBuilder: NapiBuilderCtor<NapiRootDiskBuilder>;
   readonly Setup: new () => NapiSetup;
   readonly imageGet: (reference: string) => Promise<NapiImageHandle>;
   readonly imageList: () => Promise<NapiImageInfo[]>;
   readonly imageInspect: (reference: string) => Promise<NapiImageDetail>;
   readonly imageRemove: (reference: string, force?: boolean) => Promise<void>;
   readonly imagePrune: () => Promise<NapiImagePruneReport>;
+  readonly imageLoad: (
+    inputPath: string,
+    tag?: string,
+  ) => Promise<NapiImageInfo[]>;
+  readonly imageSave: (
+    references: string[],
+    outputPath: string,
+    format?: string,
+  ) => Promise<void>;
   readonly install: () => Promise<void>;
   readonly isInstalled: () => boolean;
   readonly allSandboxMetrics: () => Promise<Record<string, NapiSandboxMetrics>>;
@@ -140,6 +150,10 @@ export interface NapiSandboxBuilderSetters {
   fromSnapshot(pathOrName: string): this;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   imageWith(configure: (b: any) => any): this;
+  /** Managed root disk of the given size in MiB. Requires an OCI image. */
+  rootDisk(sizeMiB: number): this;
+  /** Configure the root disk (managed size, tmpfs, or disk image). Requires an OCI image. */
+  rootDisk(configure: (d: NapiRootDiskBuilder) => NapiRootDiskBuilder): this;
   cpus(n: number): this;
   maxCpus(n: number): this;
   memory(mib: number): this;
@@ -257,7 +271,6 @@ export interface NapiSandboxHandle {
   logs(opts?: LogOptions): Promise<LogEntry[]>;
   logStream(opts?: LogStreamOptions): Promise<NapiLogStream>;
   snapshot(name: string): Promise<NapiSnapshot>;
-  snapshotTo(path: string): Promise<NapiSnapshot>;
 }
 
 export interface NapiSandboxStopResult {
@@ -488,18 +501,19 @@ export interface NapiSnapshotStatic {
   listDir(dir: string): Promise<NapiSnapshot[]>;
   remove(pathOrName: string, opts?: NapiSnapshotRemoveOptions): Promise<void>;
   reindex(dir?: string): Promise<number>;
-  export(name: string, out: string, opts?: NapiExportOpts): Promise<void>;
-  import(archive: string, dest?: string): Promise<NapiSnapshotHandle>;
+  save(name: string, out: string, opts?: NapiSaveOpts): Promise<void>;
+  load(archive: string, dest?: string): Promise<NapiSnapshotHandle>;
 }
 
-export type NapiSnapshotBuilderCtor = new (sourceSandbox: string) => NapiSnapshotBuilder;
+export type NapiSnapshotBuilderCtor = new (name: string) => NapiSnapshotBuilder;
 
 export interface NapiSnapshotBuilderSetters {
-  name(name: string): this;
-  path(path: string): this;
+  fromSandbox(sourceSandbox: string): this;
+  destDir(destDir: string): this;
   label(key: string, value: string): this;
   force(): this;
   recordIntegrity(): this;
+  resumable(): this;
 }
 
 export interface NapiSnapshotBuilder extends NapiSnapshotBuilderSetters {
@@ -509,12 +523,19 @@ export interface NapiSnapshotBuilder extends NapiSnapshotBuilderSetters {
 export interface NapiSnapshot {
   readonly path: string;
   readonly digest: string;
-  readonly sizeBytes: bigint;
+  readonly sizeBytes: bigint | null | undefined;
   readonly imageRef: string;
   readonly imageManifestDigest: string;
-  readonly format: string; // "raw" | "qcow2"
-  readonly fstype: string;
+  readonly stateKind: string; // "file" | "checkpoint"
+  readonly format: string | null | undefined; // "raw" | "qcow2"
+  readonly fstype: string | null | undefined;
+  readonly upperFile: string | null | undefined;
+  readonly upperIntegrityAlgorithm: string | null | undefined;
+  readonly upperIntegrityDigest: string | null | undefined;
+  readonly checkpointId: string | null | undefined;
+  readonly checkpointManifestDigest: string | null | undefined;
   readonly parent: string | null | undefined;
+  readonly scope: string; // "disk" | "resumable"
   readonly createdAt: string; // RFC 3339 UTC
   readonly labels: Record<string, string>;
   readonly sourceSandbox: string | null | undefined;
@@ -525,9 +546,17 @@ export interface NapiSnapshotHandle {
   readonly digest: string;
   readonly name: string | null | undefined;
   readonly parentDigest: string | null | undefined;
+  readonly scope: string; // "disk" | "resumable"
   readonly imageRef: string;
-  readonly format: string;
+  readonly stateKind: string;
+  readonly format: string | null | undefined;
+  readonly fstype: string | null | undefined;
+  readonly checkpointManifestDigest: string | null | undefined;
   readonly sizeBytes: bigint | null | undefined;
+  readonly locality: string;
+  readonly availability: string;
+  readonly migrationState: string;
+  readonly migrationErrorCode: string | null | undefined;
   readonly createdAt: number;
   readonly path: string;
   open(): Promise<NapiSnapshot>;
@@ -538,14 +567,22 @@ export interface NapiSnapshotInfo {
   readonly digest: string;
   readonly name: string | null | undefined;
   readonly parentDigest: string | null | undefined;
+  readonly scope: string; // "disk" | "resumable"
   readonly imageRef: string;
-  readonly format: string;
+  readonly stateKind: string;
+  readonly format: string | null | undefined;
+  readonly fstype: string | null | undefined;
+  readonly checkpointManifestDigest: string | null | undefined;
   readonly sizeBytes: number | null | undefined;
+  readonly locality: string;
+  readonly availability: string;
+  readonly migrationState: string;
+  readonly migrationErrorCode: string | null | undefined;
   readonly createdAt: number;
   readonly path: string;
 }
 
-export interface NapiExportOpts {
+export interface NapiSaveOpts {
   withParents?: boolean;
   withImage?: boolean;
   plainTar?: boolean;
@@ -558,7 +595,7 @@ export interface NapiSnapshotRemoveOptions {
 export interface NapiSnapshotVerifyReport {
   readonly digest: string;
   readonly path: string;
-  readonly upperKind: string; // "notRecorded" | "verified"
+  readonly upperKind: string; // "verified"
   readonly upperAlgorithm: string | null | undefined;
   readonly upperDigest: string | null | undefined;
 }
@@ -635,6 +672,7 @@ export interface NapiExecHandle extends AsyncIterable<NapiExecEvent> {
   collect(): Promise<NapiExecOutput>;
   signal(signal: number): Promise<void>;
   kill(): Promise<void>;
+  resize(rows: number, cols: number): Promise<void>;
 }
 
 export interface NapiExecOutput {
@@ -1081,8 +1119,26 @@ export interface NapiRegistryConfigBuilder {
 
 export interface NapiImageBuilder {
   oci(reference: string): this;
+  /** Managed root disk of the given size, in MiB. */
+  rootDisk(sizeMiB: number): this;
+  /** Configure the root disk via a builder callback (tmpfs / disk-image kinds). */
+  rootDisk(configure: (d: NapiRootDiskBuilder) => NapiRootDiskBuilder): this;
+  /** @deprecated Use `rootDisk` instead. */
   upperSize(sizeMiB: number): this;
   disk(path: string): this;
   bind(host: string): this;
+  fstype(fstype: string): this;
+}
+
+export interface NapiRootDiskBuilder {
+  /** Size in MiB (managed and tmpfs kinds only). */
+  size(mib: number): this;
+  /** RAM-backed tmpfs upper: ephemeral, counts against guest memory. */
+  tmpfs(): this;
+  /** User-supplied disk image attached writable as the upper. */
+  disk(path: string): this;
+  /** Disk image format (`"raw" | "qcow2"`); only valid after `.disk()`. */
+  format(format: "raw" | "qcow2"): this;
+  /** Inner filesystem type (e.g. `"ext4"`); only valid after `.disk()`. */
   fstype(fstype: string): this;
 }

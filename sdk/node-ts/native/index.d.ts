@@ -122,6 +122,8 @@ export declare class ExecHandle {
   signal(signal: number): Promise<void>
   /** Kill the running process (SIGKILL). */
   kill(): Promise<void>
+  /** Resize the pseudo-terminal for this exec session. */
+  resize(rows: number, cols: number): Promise<void>
 }
 export type JsExecHandle = ExecHandle
 
@@ -187,7 +189,7 @@ export declare class ExecOutput {
 export declare class ExecSink {
   /** Write data to the process stdin. */
   write(data: Buffer): Promise<void>
-  /** Close stdin (sends EOF to the process). */
+  /** Close the sink. Sends EOF in non-TTY pipe mode; PTY mode stays open. */
   close(): Promise<void>
 }
 export type JsExecSink = ExecSink
@@ -228,7 +230,7 @@ export type JsFsWriteSink = FsWriteSink
  * Fluent builder for an explicit rootfs image source.
  *
  * Used inside `Sandbox.builder(...).imageWith((i) => i.disk(...).fstype(...))`
- * or `Sandbox.builder(...).imageWith((i) => i.oci(...).upperSize(...))`.
+ * or `Sandbox.builder(...).imageWith((i) => i.oci(...).rootDisk(...))`.
  * Standalone use is rare; `.image("python:3.12")` and `.image("./ubuntu.qcow2")`
  * resolve the common cases automatically.
  */
@@ -236,7 +238,24 @@ export declare class ImageBuilder {
   constructor()
   /** Use an OCI image reference as the root filesystem. */
   oci(reference: string): this
-  /** Set the writable overlay upper size for an OCI rootfs, in MiB. */
+  /**
+   * Configure the writable rootfs layer (root disk) for an OCI rootfs.
+   *
+   * Pass a number of MiB for a managed root disk, or a callback for the
+   * tmpfs and disk-image kinds:
+   *
+   * ```ts
+   * .imageWith((i) => i.oci("python:3.12").rootDisk(8192))
+   * .imageWith((i) => i.oci("python:3.12").rootDisk((d) => d.tmpfs().size(512)))
+   * .imageWith((i) => i.oci("python:3.12").rootDisk((d) => d.disk("./scratch.img")))
+   * ```
+   */
+  rootDisk(sizeMibOrConfigure: number | ((d: RootDiskBuilder) => RootDiskBuilder)): this
+  /**
+   * Set the writable overlay upper size for an OCI rootfs, in MiB.
+   *
+   * @deprecated Use `rootDisk` instead.
+   */
   upperSize(sizeMib: number): this
   /**
    * Use a host disk image file as the root filesystem. The format is
@@ -442,8 +461,8 @@ export declare class NetworkBuilder {
   /** Publish a UDP port on a specific host bind address. */
   portUdpBind(bind: string, hostPort: number, guestPort: number): this
   /**
-   * Set a policy. Construct via the JS-side `NetworkPolicy.publicOnly()`
-   * / `.allowAll()` / `.none()` / `.nonLocal()` factories or build a
+   * Set a policy. Construct via the JS-side `NetworkPolicy.fromProfiles()`
+   * / `.allowAll()` / `.none()` factories or build a
    * custom one and pass it through `JSON.stringify`-friendly JSON. Here
    * we accept the canonical serialized form (a JSON string) to avoid
    * re-modeling the rule schema across the FFI; Phase 7 reconciles.
@@ -634,6 +653,48 @@ export declare class RegistryConfigBuilder {
   build(): RegistryConfig
 }
 export type JsRegistryConfigBuilder = RegistryConfigBuilder
+
+/**
+ * Fluent builder for the writable rootfs layer (root disk) of an OCI image.
+ *
+ * Used inside `ImageBuilder.rootDisk((d) => ...)`:
+ *
+ * ```ts
+ * .imageWith((i) => i.oci("python:3.12").rootDisk(8192))                       // managed, sized
+ * .imageWith((i) => i.oci("python:3.12").rootDisk((d) => d.tmpfs().size(512))) // RAM-backed
+ * .imageWith((i) => i.oci("python:3.12").rootDisk((d) => d.disk("./scratch.img").fstype("ext4")))
+ * ```
+ */
+export declare class RootDiskBuilder {
+  constructor()
+  /**
+   * Size in MiB. Valid for the managed (default) and tmpfs kinds; a
+   * user-supplied disk image is sized by the image file itself.
+   */
+  size(mib: number): this
+  /**
+   * Use a RAM-backed tmpfs upper. Ephemeral: the rootfs is pristine on
+   * every boot, and the size counts against guest memory.
+   */
+  tmpfs(): this
+  /**
+   * Use a user-supplied disk image as the upper, attached writable. The
+   * format is derived from the file extension (`.img`/`.raw` → raw,
+   * `.qcow2` → qcow2) unless set explicitly with `.format()`.
+   */
+  disk(path: string): this
+  /**
+   * Set the disk image format explicitly (`"raw" | "qcow2"`). Only valid
+   * after `.disk()`; vmdk is not supported as a root disk.
+   */
+  format(format: string): this
+  /**
+   * Inner filesystem type of the disk image (e.g. `"ext4"`). Only valid
+   * after `.disk()`.
+   */
+  fstype(fstype: string): this
+}
+export type JsRootDiskBuilder = RootDiskBuilder
 
 /**
  * Per-rule-batch builder. Lives only inside the closure passed to
@@ -914,6 +975,21 @@ export declare class SandboxBuilder {
   image(image: string): this
   /** Configure a disk-image rootfs explicitly via a callback. */
   imageWith(configure: (arg: ImageBuilder) => ImageBuilder): this
+  /**
+   * Configure the writable rootfs layer (root disk) for the OCI image.
+   *
+   * Sugar over `imageWith((i) => i.oci(...).rootDisk(...))` — the root
+   * disk lives on the OCI rootfs source, so an OCI image must be set
+   * first. Pass a number of MiB for a managed root disk, or a callback
+   * for the tmpfs and disk-image kinds:
+   *
+   * ```ts
+   * .image("python").rootDisk(8192)
+   * .image("python").rootDisk((d) => d.tmpfs().size(512))
+   * .image("python").rootDisk((d) => d.disk("./scratch.img"))
+   * ```
+   */
+  rootDisk(sizeMibOrConfigure: number | ((d: RootDiskBuilder) => RootDiskBuilder)): this
   /**
    * Boot a fresh sandbox from a snapshot artifact (path or name).
    * Mutually exclusive with `image()` / `imageWith()` — the
@@ -1219,13 +1295,10 @@ export declare class SandboxHandle {
   /**
    * Snapshot this (stopped) sandbox under a bare name.
    *
-   * Resolves under `~/.microsandbox/snapshots/<name>/`. Use
-   * [`snapshotTo`](Self::snapshot_to) for an explicit filesystem
-   * destination.
+   * Resolves under `~/.microsandbox/snapshots/<name>/`. Move
+   * artifacts with `Snapshot.save`/`Snapshot.load`.
    */
   snapshot(name: string): Promise<JsSnapshot>
-  /** Snapshot this (stopped) sandbox to an explicit filesystem path. */
-  snapshotTo(path: string): Promise<JsSnapshot>
 }
 export type JsSandboxHandle = SandboxHandle
 
@@ -1310,7 +1383,7 @@ export declare class Snapshot {
   static get(nameOrDigest: string): Promise<SnapshotHandle>
   static list(): Promise<Array<SnapshotInfo>>
   /**
-   * Walk `dir` and parse each subdirectory's `manifest.json`. Does
+   * Walk `dir` and parse each subdirectory's `snapshot.json`. Does
    * not touch the local index — useful for inspecting external
    * snapshot collections (e.g. a mounted volume of artifacts that
    * were never imported).
@@ -1318,16 +1391,28 @@ export declare class Snapshot {
   static listDir(dir: string): Promise<Array<Snapshot>>
   static remove(pathOrName: string, opts?: SnapshotRemoveOptions | undefined | null): Promise<void>
   static reindex(dir?: string | undefined | null): Promise<number>
-  static export(nameOrPath: string, out: string, opts?: ExportOpts | undefined | null): Promise<void>
-  static import(archive: string, dest?: string | undefined | null): Promise<SnapshotHandle>
+  /**
+   * Bundle a snapshot into a `.tar.zst` archive. The recorded
+   * manifest is archived as-is, so create the snapshot with
+   * `recordIntegrity()` if receivers must verify content.
+   */
+  static save(nameOrPath: string, out: string, opts?: SaveOpts | undefined | null): Promise<void>
+  static load(archive: string, dest?: string | undefined | null): Promise<SnapshotHandle>
   get path(): string
   get digest(): string
-  get sizeBytes(): bigint
+  get sizeBytes(): bigint | null
   get imageRef(): string
   get imageManifestDigest(): string
-  get format(): string
-  get fstype(): string
+  get stateKind(): string
+  get format(): string | null
+  get fstype(): string | null
+  get upperFile(): string | null
+  get upperIntegrityAlgorithm(): string | null
+  get upperIntegrityDigest(): string | null
+  get checkpointId(): string | null
+  get checkpointManifestDigest(): string | null
   get parent(): string | null
+  get scope(): 'disk' | 'resumable'
   get createdAt(): string
   get labels(): Record<string, string>
   get sourceSandbox(): string | null
@@ -1335,19 +1420,27 @@ export declare class Snapshot {
 }
 export type JsSnapshot = Snapshot
 
-/** Fluent builder for a snapshot. Returned by `Snapshot.builder(name)`. */
+/**
+ * Fluent builder for a snapshot. Returned by `Snapshot.builder(name)`.
+ * The source sandbox is set with `fromSandbox()` and is required.
+ */
 export declare class SnapshotBuilder {
-  constructor(sourceSandbox: string)
-  /** Set a bare name (resolved under the default snapshots dir). */
-  name(name: string): this
-  /** Set an explicit destination path. */
-  path(path: string): this
+  constructor(name: string)
+  /**
+   * Create the artifact under this parent directory instead of the
+   * default snapshots store. The artifact lands at `destDir/<name>`.
+   */
+  destDir(destDir: string): this
+  /** Set the source sandbox to snapshot. Required. */
+  fromSandbox(sourceSandbox: string): this
   /** Attach a key-value label. May be called multiple times. */
   label(key: string, value: string): this
   /** Overwrite an existing artifact at the destination. */
   force(): this
   /** Compute and record content integrity at create time. */
   recordIntegrity(): this
+  /** Request a future resumable snapshot. */
+  resumable(): this
   /** Snapshot the accumulated configuration. */
   build(): SnapshotConfig
   /**
@@ -1368,9 +1461,17 @@ export declare class SnapshotHandle {
   get digest(): string
   get name(): string | null
   get parentDigest(): string | null
+  get scope(): 'disk' | 'resumable'
   get imageRef(): string
-  get format(): string
+  get stateKind(): string
+  get format(): string | null
+  get fstype(): string | null
+  get checkpointManifestDigest(): string | null
   get sizeBytes(): bigint | null
+  get locality(): string
+  get availability(): string
+  get migrationState(): string
+  get migrationErrorCode(): string | null
   get createdAt(): number
   get path(): string
   open(): Promise<Snapshot>
@@ -1597,16 +1698,6 @@ export interface ExitStatus {
   success: boolean
 }
 
-/** Options for `Snapshot.export()`. */
-export interface ExportOpts {
-  /** Walk the parent chain and include each ancestor (no-op today). */
-  withParents?: boolean
-  /** Bundle the OCI image cache for offline transport. */
-  withImage?: boolean
-  /** Skip zstd compression and write a plain `.tar`. */
-  plainTar?: boolean
-}
-
 /** Filesystem entry metadata returned by `fs.list()`. */
 export interface FsEntry {
   path: string
@@ -1685,6 +1776,13 @@ export interface ImageLayerDetail {
 /** List all cached images. */
 export declare function imageList(): Promise<Array<ImageInfo>>
 
+/**
+ * Load images from a local archive (`docker save` tarball or OCI Image
+ * Layout) into the image cache. `tag` applies an extra reference to the
+ * first image in the archive.
+ */
+export declare function imageLoad(inputPath: string, tag?: string | undefined | null): Promise<Array<ImageInfo>>
+
 /** Remove cached image data that is not used by any sandbox or indexed snapshot. */
 export declare function imagePrune(): Promise<ImagePruneReportJs>
 
@@ -1703,6 +1801,12 @@ export interface ImagePruneReportJs {
  * sandbox references it.
  */
 export declare function imageRemove(reference: string, force?: boolean | undefined | null): Promise<void>
+
+/**
+ * Save cached images to an archive file. `format` selects the layout:
+ * `"docker"` (default, loadable with `docker load`) or `"oci"`.
+ */
+export declare function imageSave(references: Array<string>, outputPath: string, format?: string | undefined | null): Promise<void>
 
 /** Download and install msb + libkrunfw to ~/.microsandbox/. */
 export declare function install(): Promise<void>
@@ -2017,6 +2121,16 @@ export interface SandboxTouchResult {
   activitySeq: number
 }
 
+/** Options for `Snapshot.save()`. */
+export interface SaveOpts {
+  /** Walk the parent chain and include each ancestor in the archive. */
+  withParents?: boolean
+  /** Bundle the OCI image cache for offline transport. */
+  withImage?: boolean
+  /** Skip zstd compression and write a plain `.tar`. */
+  plainTar?: boolean
+}
+
 /** Host-scoped upstream CA certificate path. */
 export interface ScopedUpstreamCaCert {
   pattern: string
@@ -2097,12 +2211,13 @@ export declare function setRuntimeMsbPath(path: string): void
 
 /** Built snapshot configuration produced by `SnapshotBuilder.build()`. */
 export interface SnapshotConfig {
-  sourceSandbox: string
-  destinationKind: string
-  destinationValue?: string
+  name: string
+  sourceSandbox?: string
+  destDir?: string
   labels: Array<JsSnapshotLabel>
   force: boolean
   recordIntegrity: boolean
+  resumable: boolean
 }
 
 /** Snapshot index info from the local DB cache. */
@@ -2111,9 +2226,18 @@ export interface SnapshotInfo {
   name?: string
   parentDigest?: string
   imageRef: string
+  /** `"disk"` today; `"resumable"` once memory/device-state restore lands. */
+  scope: string
   /** `"raw"` or `"qcow2"`. */
-  format: string
+  stateKind: string
+  format?: string
+  fstype?: string
+  checkpointManifestDigest?: string
   sizeBytes?: number
+  locality: string
+  availability: string
+  migrationState: string
+  migrationErrorCode?: string
   createdAt: number
   path: string
 }
@@ -2131,10 +2255,8 @@ export interface SnapshotRemoveOptions {
 /**
  * Result of `Snapshot.verify()`.
  *
- * `upperKind` is `"notRecorded"` when no integrity hash was stored,
- * or `"verified"` when the recorded hash matched the recomputed one.
- * `upperAlgorithm` and `upperDigest` are populated only when
- * `upperKind === "verified"`.
+ * `upperKind` is `"verified"` when the mandatory file-state integrity
+ * matched. `upperAlgorithm` and `upperDigest` carry the verified binding.
  */
 export interface SnapshotVerifyReport {
   digest: string

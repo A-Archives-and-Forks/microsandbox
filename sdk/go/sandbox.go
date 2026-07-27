@@ -76,8 +76,12 @@ func buildFFICreateOptions(o SandboxConfig) ffi.CreateOptions {
 		PortsUDP:        o.PortsUDP,
 		PortBindings:    buildFFIPortBindings(o.PortBindings),
 	}
-	if o.ociUpperSizeSet || o.OCIUpperSizeMiB != 0 {
-		ffiOpts.OCIUpperSizeMiB = &o.OCIUpperSizeMiB
+	if o.RootDisk != nil {
+		ffiOpts.RootDisk = buildFFIRootDisk(*o.RootDisk)
+	} else if o.ociUpperSizeSet || o.OCIUpperSizeMiB != 0 {
+		// Deprecated flat field, honored as a managed root disk.
+		size := o.OCIUpperSizeMiB
+		ffiOpts.RootDisk = &ffi.RootDiskSpec{Kind: "managed", SizeMiB: &size}
 	}
 	if o.ReplaceWithTimeout != nil {
 		var ms uint64
@@ -160,6 +164,28 @@ func buildFFICreateOptions(o SandboxConfig) ffi.CreateOptions {
 	return ffiOpts
 }
 
+// buildFFIRootDisk translates a RootDiskConfig into the FFI wire shape.
+func buildFFIRootDisk(rd RootDiskConfig) *ffi.RootDiskSpec {
+	spec := &ffi.RootDiskSpec{}
+	switch rd.Kind() {
+	case RootDiskKindTmpfs:
+		spec.Kind = "tmpfs"
+	case RootDiskKindDiskImage:
+		spec.Kind = "disk-image"
+		spec.Path = rd.Path
+		spec.Format = rd.Format
+		spec.Fstype = rd.Fstype
+	default:
+		// Managed, including zero-valued configs built without the factory.
+		spec.Kind = "managed"
+	}
+	if rd.sizeSet || rd.SizeMiB != 0 {
+		size := rd.SizeMiB
+		spec.SizeMiB = &size
+	}
+	return spec
+}
+
 // durationSecsCeil rounds a Duration up to whole seconds. Sub-second values
 // round up to 1 so that "any positive timeout" remains positive on the wire.
 func durationSecsCeil(d time.Duration) uint64 {
@@ -229,7 +255,6 @@ func sandboxTouchResultFromFFI(result *ffi.SandboxTouchResult) *SandboxTouchResu
 // buildFFINetwork converts a public NetworkConfig into its ffi counterpart.
 func buildFFINetwork(n *NetworkConfig) *ffi.NetworkOptions {
 	out := &ffi.NetworkOptions{
-		Policy:              string(n.Policy),
 		DNSRebindProtection: n.DNSRebindProtection,
 		DenyDomains:         n.DenyDomains,
 		DenyDomainSuffixes:  n.DenyDomainSuffixes,
@@ -644,15 +669,6 @@ func (h *SandboxHandle) Remove(ctx context.Context) error {
 // snapshots directory.
 func (h *SandboxHandle) Snapshot(ctx context.Context, name string) (*SnapshotArtifact, error) {
 	info, err := ffi.SandboxHandleSnapshot(ctx, h.name, name)
-	if err != nil {
-		return nil, wrapFFI(err)
-	}
-	return snapshotFromInfo(info), nil
-}
-
-// SnapshotTo captures this stopped sandbox to an explicit artifact directory.
-func (h *SandboxHandle) SnapshotTo(ctx context.Context, path string) (*SnapshotArtifact, error) {
-	info, err := ffi.SandboxHandleSnapshotTo(ctx, h.name, path)
 	if err != nil {
 		return nil, wrapFFI(err)
 	}

@@ -13,7 +13,8 @@ use sea_orm::EntityTrait;
 use crate::{
     MicrosandboxResult,
     backend::{
-        Backend, CloudSandbox, SandboxHandleCloudState, SandboxHandleInner, SandboxHandleLocalState,
+        Backend, CloudCreateSandboxResponse, SandboxHandleCloudState, SandboxHandleInner,
+        SandboxHandleLocalState,
     },
     db::entity::sandbox as sandbox_entity,
 };
@@ -78,7 +79,7 @@ impl SandboxHandle {
         }
     }
 
-    /// Build a handle from a [`CloudSandbox`] HTTP response.
+    /// Build a handle from a [`CloudCreateSandboxResponse`] HTTP response.
     ///
     /// Returns an error if `cloud.config` cannot be re-serialised to JSON for
     /// the `config_json()` view. Silent fallback to an empty string here would
@@ -86,10 +87,10 @@ impl SandboxHandle {
     /// out of [`config()`](Self::config) / [`config_json()`](Self::config_json).
     pub(crate) fn from_cloud(
         backend: Arc<dyn Backend>,
-        cloud: CloudSandbox,
+        cloud: CloudCreateSandboxResponse,
     ) -> MicrosandboxResult<Self> {
         let status = crate::backend::sandbox::cloud_status_to_sandbox_status(cloud.status);
-        let config_json = serde_json::to_string(&cloud.config)?;
+        let config_json = serde_json::to_string(&cloud.spec)?;
         let name = cloud.name.clone();
         Ok(Self {
             backend,
@@ -101,7 +102,7 @@ impl SandboxHandle {
                 created_at: Some(cloud.created_at),
                 started_at: cloud.started_at,
                 stopped_at: cloud.stopped_at,
-                last_error: cloud.last_error,
+                last_failure_message: cloud.last_failure_message,
             }),
             name,
         })
@@ -158,11 +159,11 @@ impl SandboxHandle {
         }
     }
 
-    /// Snapshot of the cloud `last_error`, if any. Returns `None` for local
-    /// handles (local error reporting flows through the typed error stack).
-    pub fn last_error_snapshot(&self) -> Option<String> {
+    /// Snapshot of the cloud `last_failure_message`, if any. Returns `None`
+    /// for local handles (local errors flow through the typed error stack).
+    pub fn last_failure_message_snapshot(&self) -> Option<String> {
         match &self.inner {
-            SandboxHandleInner::Cloud(s) => s.last_error.clone(),
+            SandboxHandleInner::Cloud(s) => s.last_failure_message.clone(),
             SandboxHandleInner::Local(_) => None,
         }
     }
@@ -438,27 +439,9 @@ impl SandboxHandle {
                 available_when: "when cloud snapshots land".into(),
             });
         }
-        use super::super::snapshot::{Snapshot, SnapshotDestination};
-        Snapshot::builder(&self.name)
-            .destination(SnapshotDestination::Name(name.to_string()))
-            .create()
-            .await
-    }
-
-    /// Snapshot this sandbox to an explicit filesystem path. **Local handles only.**
-    pub async fn snapshot_to(
-        &self,
-        path: impl AsRef<std::path::Path>,
-    ) -> MicrosandboxResult<super::super::snapshot::Snapshot> {
-        if self.local().is_none() {
-            return Err(crate::MicrosandboxError::Unsupported {
-                feature: "SandboxHandle::snapshot_to on cloud".into(),
-                available_when: "when cloud snapshots land".into(),
-            });
-        }
-        use super::super::snapshot::{Snapshot, SnapshotDestination};
-        Snapshot::builder(&self.name)
-            .destination(SnapshotDestination::Path(path.as_ref().to_path_buf()))
+        use super::super::snapshot::Snapshot;
+        Snapshot::builder(name)
+            .from_sandbox(&self.name)
             .create()
             .await
     }

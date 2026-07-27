@@ -28,25 +28,23 @@ pub use agent::{
 };
 pub use backend::{
     Backend, BackendKind, CloudBackend, CloudBackendBuilder, CloudCreateSandboxRequest,
-    CloudErrorBody, CloudErrorDetails, CloudMessageResponse, CloudPaginated, CloudSandbox,
-    CloudSandboxStatus, LocalBackend, LocalBackendBuilder, Profile, ProfileBackend, SandboxBackend,
-    SandboxCloudState, SandboxHandleCloudState, SandboxHandleInner, SandboxHandleLocalState,
-    SandboxInner, SandboxList, SandboxLocalState, SdkConfig, VolumeBackend, VolumeCloudState,
-    VolumeHandleCloudState, VolumeHandleInner, VolumeHandleLocalState, VolumeInner,
-    VolumeLocalState, default_backend, load_sdk_config, resolve_default_backend,
-    set_default_backend, swap_default_backend, with_backend,
+    CloudCreateSandboxResponse, CloudErrorBody, CloudErrorDetails, CloudMessageResponse,
+    CloudPaginated, CloudSandboxStatus, LocalBackend, LocalBackendBuilder, Profile, ProfileBackend,
+    SandboxBackend, SandboxCloudState, SandboxHandleCloudState, SandboxHandleInner,
+    SandboxHandleLocalState, SandboxInner, SandboxList, SandboxLocalState, SdkConfig,
+    VolumeBackend, VolumeCloudState, VolumeHandleCloudState, VolumeHandleInner,
+    VolumeHandleLocalState, VolumeInner, VolumeLocalState, default_backend, load_sdk_config,
+    resolve_default_backend, set_default_backend, swap_default_backend, with_backend,
 };
 pub use config::set_sdk_libkrunfw_path as set_libkrunfw_path;
 pub use error::*;
 pub use image::{
     Image, ImageConfigDetail, ImageDetail, ImageHandle, ImageLayerDetail, ImagePruneReport,
 };
-pub use microsandbox_image::RegistryAuth;
+pub use microsandbox_image::{ImageArchiveFormat, RegistryAuth};
 pub use microsandbox_protocol as protocol;
 pub use microsandbox_runtime::logging::LogLevel;
 pub use microsandbox_utils::size;
-#[cfg(feature = "net")]
-pub use sandbox::NetworkPolicy;
 pub use sandbox::exec::{ExecControl, ExecEvent, ExecHandle};
 #[cfg(feature = "ssh")]
 pub use sandbox::ssh::{
@@ -65,8 +63,11 @@ pub use sandbox::{
     all_sandbox_metrics_local, all_sandbox_metrics_reports_local, sandbox_metrics_report_local,
     validate_sandbox_name,
 };
+#[cfg(feature = "net")]
+pub use sandbox::{NetworkPolicy, NetworkProfile};
 pub use snapshot::{
-    Snapshot, SnapshotBuilder, SnapshotConfig, SnapshotDestination, SnapshotFormat, SnapshotHandle,
-    SnapshotSpec, SnapshotVerifyReport, UpperIntegrity, UpperVerifyStatus,
+    CheckpointSnapshotState, FileSnapshotState, SaveOpts, Snapshot, SnapshotBuilder,
+    SnapshotConfig, SnapshotDescriptor, SnapshotFormat, SnapshotHandle, SnapshotScope,
+    SnapshotSpec, SnapshotState, SnapshotVerifyReport, UpperIntegrity, UpperVerifyStatus,
 };
 pub use volume::{Volume, VolumeConfig, VolumeHandle, VolumeKind, VolumeSpec};

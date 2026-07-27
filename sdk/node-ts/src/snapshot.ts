@@ -12,10 +12,36 @@ import {
 } from "./snapshot-handle.js";
 
 /**
- * Bundle options for `Snapshot.export`.
+ * Snapshot payload scope.
  */
-export interface ExportOpts {
-  /** Walk the parent chain and include each ancestor (no-op in v1). */
+export type SnapshotScope = "disk" | "resumable";
+
+/** Canonical closed state family from schema-1 `snapshot.json`. */
+export type SnapshotState =
+  | {
+      readonly kind: "file";
+      readonly format: "raw" | "qcow2";
+      readonly fstype: string;
+      readonly upper: {
+        readonly file: string;
+        readonly sizeBytes: bigint;
+        readonly integrity: {
+          readonly algorithm: string;
+          readonly digest: string;
+        };
+      };
+    }
+  | {
+      readonly kind: "checkpoint";
+      readonly checkpointId: string;
+      readonly manifest: string;
+    };
+
+/**
+ * Bundle options for `Snapshot.save`.
+ */
+export interface SaveOpts {
+  /** Walk the parent chain and include each ancestor in the archive. */
   withParents?: boolean;
   /** Include the OCI image cache so the archive boots offline. */
   withImage?: boolean;
@@ -24,25 +50,17 @@ export interface ExportOpts {
 }
 
 /**
- * Result of `Snapshot.verify()`. The `upper` discriminant is
- * `"notRecorded"` when no integrity hash was stored at create time,
- * or `"verified"` when the recorded hash matched the recomputed one.
+ * Result of `Snapshot.verify()` for mandatory file-state integrity.
  */
-export type SnapshotVerifyReport =
-  | {
-      readonly digest: string;
-      readonly path: string;
-      readonly upper: { readonly kind: "notRecorded" };
-    }
-  | {
-      readonly digest: string;
-      readonly path: string;
-      readonly upper: {
-        readonly kind: "verified";
-        readonly algorithm: string;
-        readonly digest: string;
-      };
-    };
+export type SnapshotVerifyReport = {
+  readonly digest: string;
+  readonly path: string;
+  readonly upper: {
+    readonly kind: "verified";
+    readonly algorithm: string;
+    readonly digest: string;
+  };
+};
 
 /**
  * Fluent builder for a snapshot. Returned by `Snapshot.builder(name)`.
@@ -59,9 +77,9 @@ export interface SnapshotBuilder extends NapiSnapshotBuilderSetters {
  * A snapshot artifact on disk.
  *
  * Returned by `Snapshot.builder(name).create()`, `Snapshot.open(...)`,
- * `SandboxHandle.snapshot(name)`, and `SandboxHandle.snapshotTo(path)`.
+ * and `SandboxHandle.snapshot(name)`.
  *
- * The artifact is a directory containing `manifest.json` and the
+ * The artifact is a directory containing `snapshot.json` and the
  * captured `upper.ext4`. The directory is the source of truth; the
  * local DB index (used for queries like `Snapshot.list()`) is just a
  * cache and is rebuildable via `Snapshot.reindex()`.
@@ -76,19 +94,18 @@ export class Snapshot {
   }
 
   /**
-   * Begin building a new snapshot of `sourceSandbox` (must be stopped).
+   * Begin building a snapshot named `name`, stored under the default
+   * snapshots directory.
    *
-   * The bare-name and explicit-path destinations are mutually
-   * exclusive — call exactly one of `.name(s)` or `.path(p)`.
+   * The source sandbox is required:
+   * `Snapshot.builder("clean").fromSandbox("box").create()`.
+   *
+   * Use `destDir(dir)` to create the artifact under a different parent
+   * directory instead; it lands at `destDir/<name>`, and the name stays
+   * the snapshot's identity either way.
    */
-  static builder(sourceSandbox: string): SnapshotBuilder {
-    const nb = new napi.SnapshotBuilder(sourceSandbox);
-    const origCreate = nb.create.bind(nb);
-    (nb as unknown as { create: () => Promise<Snapshot> }).create = async () => {
-      const inner = await withMappedErrors(() => origCreate());
-      return new Snapshot(inner);
-    };
-    return nb as unknown as SnapshotBuilder;
+  static builder(name: string): SnapshotBuilder {
+    return wrapBuilder(new napi.SnapshotBuilder(name));
   }
 
   /**
@@ -149,16 +166,16 @@ export class Snapshot {
   }
 
   /**
-   * Bundle a snapshot into a `.tar.zst` archive. When the snapshot
-   * has no integrity hash yet, one is computed and embedded in the
-   * bundled manifest so the receiver can verify.
+   * Bundle a snapshot into a `.tar.zst` archive. The recorded
+   * manifest is archived as-is, so create the snapshot with
+   * `recordIntegrity()` if receivers must verify content.
    */
-  static async export(
+  static async save(
     nameOrPath: string,
     out: string,
-    opts?: ExportOpts,
+    opts?: SaveOpts,
   ): Promise<void> {
-    await withMappedErrors(() => napi.Snapshot.export(nameOrPath, out, opts));
+    await withMappedErrors(() => napi.Snapshot.save(nameOrPath, out, opts));
   }
 
   /**
@@ -166,8 +183,8 @@ export class Snapshot {
    * snapshots directory, verifying recorded integrity on the way in.
    * Compression is detected from magic bytes.
    */
-  static async import(archive: string, dest?: string): Promise<SnapshotHandle> {
-    const raw = await withMappedErrors(() => napi.Snapshot.import(archive, dest));
+  static async load(archive: string, dest?: string): Promise<SnapshotHandle> {
+    const raw = await withMappedErrors(() => napi.Snapshot.load(archive, dest));
     return new SnapshotHandle(raw);
   }
 
@@ -186,8 +203,57 @@ export class Snapshot {
   }
 
   /** Apparent size of the captured upper layer in bytes (sparse on disk). */
-  get sizeBytes(): bigint {
-    return this.inner.sizeBytes;
+  get sizeBytes(): bigint | null {
+    return this.inner.sizeBytes ?? null;
+  }
+
+  /** Closed state projection matching `snapshot.json`. */
+  get state(): SnapshotState {
+    if (this.inner.stateKind === "checkpoint") {
+      return {
+        kind: "checkpoint",
+        checkpointId: requiredProjectionString(
+          this.inner.checkpointId,
+          "checkpointId",
+        ),
+        manifest: requiredProjectionString(
+          this.inner.checkpointManifestDigest,
+          "checkpointManifestDigest",
+        ),
+      };
+    }
+    if (this.inner.stateKind !== "file") {
+      throw invalidProjection(`unknown stateKind ${this.inner.stateKind}`);
+    }
+
+    const format = requiredProjectionString(this.inner.format, "format");
+    if (format !== "raw" && format !== "qcow2") {
+      throw invalidProjection(`unknown file-state format ${format}`);
+    }
+    const sizeBytes = this.inner.sizeBytes;
+    if (typeof sizeBytes !== "bigint") {
+      throw invalidProjection("missing file-state sizeBytes");
+    }
+
+    return {
+      kind: "file",
+      format,
+      fstype: requiredProjectionString(this.inner.fstype, "fstype"),
+      upper: {
+        file: requiredProjectionString(this.inner.upperFile, "upperFile"),
+        sizeBytes,
+        integrity: {
+          algorithm: requiredProjectionString(
+            this.inner.upperIntegrityAlgorithm,
+            "upperIntegrityAlgorithm",
+          ),
+          digest: requiredProjectionString(
+            this.inner.upperIntegrityDigest,
+            "upperIntegrityDigest",
+          ),
+        },
+      },
+    };
   }
 
   /** Image reference the snapshot was taken from. */
@@ -201,18 +267,23 @@ export class Snapshot {
   }
 
   /** On-disk format of the upper layer. */
-  get format(): "raw" | "qcow2" {
-    return this.inner.format as "raw" | "qcow2";
+  get format(): "raw" | "qcow2" | null {
+    return (this.inner.format as "raw" | "qcow2" | undefined) ?? null;
   }
 
   /** Filesystem type inside the upper (e.g. `"ext4"`). */
-  get fstype(): string {
-    return this.inner.fstype;
+  get fstype(): string | null {
+    return this.inner.fstype ?? null;
   }
 
   /** Manifest digest of the parent snapshot, or `null` for a root. */
   get parent(): string | null {
     return this.inner.parent ?? null;
+  }
+
+  /** Snapshot payload scope. */
+  get scope(): SnapshotScope {
+    return this.inner.scope as SnapshotScope;
   }
 
   /** RFC 3339 timestamp when the snapshot was created. */
@@ -235,8 +306,8 @@ export class Snapshot {
    * manifest. Walks data extents only, so a 4 GiB sparse file with a
    * few MB of data verifies in milliseconds.
    *
-   * Returns `{ upper: { kind: "notRecorded" } }` when the manifest
-   * has no integrity hash recorded.
+ * Checkpoint-state verification remains unavailable until its provider
+ * closure implementation lands.
    */
   async verify(): Promise<SnapshotVerifyReport> {
     const r = await withMappedErrors(() => this.inner.verify());
@@ -245,23 +316,48 @@ export class Snapshot {
 }
 
 /** @internal */
+function wrapBuilder(nb: InstanceType<typeof napi.SnapshotBuilder>): SnapshotBuilder {
+  const origCreate = nb.create.bind(nb);
+  (nb as unknown as { create: () => Promise<Snapshot> }).create = async () => {
+    const inner = await withMappedErrors(() => origCreate());
+    return new Snapshot(inner);
+  };
+  return nb as unknown as SnapshotBuilder;
+}
+
+/** @internal */
 function verifyReportToTs(r: NapiSnapshotVerifyReport): SnapshotVerifyReport {
-  if (r.upperKind === "verified") {
-    return {
-      digest: r.digest,
-      path: r.path,
-      upper: {
-        kind: "verified",
-        algorithm: r.upperAlgorithm ?? "",
-        digest: r.upperDigest ?? "",
-      },
-    };
+  if (r.upperKind !== "verified") {
+    throw invalidProjection(`unknown verification kind ${r.upperKind}`);
   }
   return {
     digest: r.digest,
     path: r.path,
-    upper: { kind: "notRecorded" },
+    upper: {
+      kind: "verified",
+      algorithm: requiredProjectionString(
+        r.upperAlgorithm,
+        "verify.upperAlgorithm",
+      ),
+      digest: requiredProjectionString(r.upperDigest, "verify.upperDigest"),
+    },
   };
+}
+
+/** @internal */
+function requiredProjectionString(
+  value: string | null | undefined,
+  field: string,
+): string {
+  if (typeof value !== "string" || value.length === 0) {
+    throw invalidProjection(`missing ${field}`);
+  }
+  return value;
+}
+
+/** @internal */
+function invalidProjection(detail: string): Error {
+  return new Error(`invalid native snapshot projection: ${detail}`);
 }
 
 /** @internal */

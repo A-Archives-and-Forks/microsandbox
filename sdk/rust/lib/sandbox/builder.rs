@@ -13,12 +13,13 @@ use microsandbox_types::{EnvVar, PullPolicy};
 use microsandbox_types::{PortProtocol, PublishedPortSpec};
 
 use super::{
+    SandboxSpec,
     config::{SandboxConfig, sandbox_log_level_from_runtime},
     exec::{Rlimit, RlimitResource},
     init::{HandoffInit, InitOptionsBuilder},
     types::{
-        ImageBuilder, IntoImage, MountBuilder, Patch, PatchBuilder, RootfsSource, SecurityProfile,
-        VolumeMount,
+        ImageBuilder, IntoImage, MountBuilder, Patch, PatchBuilder, RootDiskBuilder, RootfsSource,
+        SecurityProfile, VolumeMount,
     },
 };
 use crate::{LogLevel, MicrosandboxError, MicrosandboxResult, size::Mebibytes};
@@ -86,6 +87,17 @@ impl SandboxBuilder {
         }
     }
 
+    /// Seed a builder from a full [`SandboxSpec`] JSON.
+    ///
+    /// Options chained afterwards override individual fields (last-wins), just as
+    /// on a builder from [`new`](Self::new). This is the Rust entry the FFI
+    /// `create_from_spec` path calls into, so both share one implementation.
+    pub fn from_spec_json(json: &str) -> MicrosandboxResult<Self> {
+        let spec: SandboxSpec = serde_json::from_str(json)
+            .map_err(|e| MicrosandboxError::InvalidConfig(e.to_string()))?;
+        Ok(Self::from(SandboxConfig::from(spec)))
+    }
+
     /// Set the root filesystem image source.
     ///
     /// - **`&str` / `String`**: Paths starting with `/`, `./`, or `../` are treated as local
@@ -115,7 +127,7 @@ impl SandboxBuilder {
     /// Set the root filesystem image using a builder closure.
     ///
     /// ```ignore
-    /// .image_with(|i| i.oci("python:3.12").upper_size(8.gib()))
+    /// .image_with(|i| i.oci("python:3.12").root_disk(8.gib()))
     /// .image_with(|i| i.disk("./ubuntu.qcow2").fstype("ext4"))
     /// ```
     pub fn image_with(mut self, f: impl FnOnce(ImageBuilder) -> ImageBuilder) -> Self {
@@ -130,33 +142,65 @@ impl SandboxBuilder {
         self
     }
 
-    /// Set the writable overlay upper size for an OCI rootfs.
+    /// Set a managed root disk of the given size for an OCI rootfs.
     ///
-    /// Prefer [`image_with`](Self::image_with) when configuring the image and
-    /// upper together. This method exists for call sites, such as CLIs, where
-    /// the image reference and its options are parsed separately.
-    pub fn oci_upper_size(mut self, size: impl Into<Mebibytes>) -> Self {
-        let size_mib = size.into().as_u32();
+    /// Sugar for `root_disk_with(|d| d.size(size))`.
+    pub fn root_disk(self, size: impl Into<Mebibytes>) -> Self {
+        let size = size.into();
+        self.root_disk_with(|d| d.size(size))
+    }
+
+    /// Configure the writable rootfs layer (root disk) for an OCI rootfs.
+    ///
+    /// The root disk is a property of the OCI rootfs source, so this is sugar
+    /// over [`image_with`](Self::image_with) and requires an OCI image to be
+    /// set first. Prefer `image_with` when configuring the image and root disk
+    /// together; this method exists for call sites, such as CLIs, where the
+    /// image reference and its options are parsed separately.
+    ///
+    /// ```ignore
+    /// .image("python").root_disk_with(|d| d.tmpfs().size(2.gib()))
+    /// .image("python").root_disk_with(|d| d.disk_image("./scratch.img"))
+    /// ```
+    pub fn root_disk_with(
+        mut self,
+        configure: impl FnOnce(RootDiskBuilder) -> RootDiskBuilder,
+    ) -> Self {
+        let root_disk = match configure(RootDiskBuilder::default()).build() {
+            Ok(root_disk) => root_disk,
+            Err(e) => {
+                if self.build_error.is_none() {
+                    self.build_error = Some(e);
+                }
+                return self;
+            }
+        };
         match &mut self.config.spec.image {
             RootfsSource::Oci(oci) if !oci.reference.is_empty() => {
-                oci.upper_size_mib = Some(size_mib);
+                oci.root_disk = Some(root_disk);
             }
             RootfsSource::Oci(_) => {
                 if self.build_error.is_none() {
                     self.build_error = Some(crate::MicrosandboxError::InvalidConfig(
-                        "oci_upper_size() requires an OCI image to be set first".into(),
+                        "root_disk() requires an OCI image to be set first".into(),
                     ));
                 }
             }
             _ => {
                 if self.build_error.is_none() {
                     self.build_error = Some(crate::MicrosandboxError::InvalidConfig(
-                        "oci_upper_size() is only valid for OCI images".into(),
+                        "root_disk() is only valid for OCI images".into(),
                     ));
                 }
             }
         }
         self
+    }
+
+    /// Set the writable overlay upper size for an OCI rootfs.
+    #[deprecated(since = "0.6.0", note = "use `root_disk` instead")]
+    pub fn oci_upper_size(self, size: impl Into<Mebibytes>) -> Self {
+        self.root_disk(size)
     }
 
     /// Allocate virtual CPUs for this sandbox (default: 1).
@@ -335,22 +379,28 @@ impl SandboxBuilder {
         self
     }
 
-    /// Clear detached startup intent for attached CLI `run`.
+    /// Select the foreground command for attached CLI `run`.
     #[doc(hidden)]
-    pub fn initial_command(mut self, command: impl IntoIterator<Item = impl Into<String>>) -> Self {
-        self.config
-            .set_initial_command(command.into_iter().map(Into::into).collect());
-        self
-    }
-
-    /// Set the persisted startup command for detached CLI `run`.
-    #[doc(hidden)]
-    pub fn persistent_initial_command(
+    pub fn foreground_command(
         mut self,
         command: impl IntoIterator<Item = impl Into<String>>,
     ) -> Self {
         self.config
-            .set_persistent_initial_command(command.into_iter().map(Into::into).collect());
+            .set_foreground_command(command.into_iter().map(Into::into).collect());
+        self
+    }
+
+    /// Select the background command for detached CLI `run`.
+    ///
+    /// An empty command uses the image's default CMD. A non-empty command replaces CMD while
+    /// preserving the effective OCI entrypoint.
+    #[doc(hidden)]
+    pub fn background_command(
+        mut self,
+        command: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Self {
+        self.config
+            .set_background_command(command.into_iter().map(Into::into).collect());
         self
     }
 
@@ -373,7 +423,7 @@ impl SandboxBuilder {
     /// `init` and `entrypoint` are orthogonal: `init` is the guest's
     /// PID 1; `entrypoint` is the user workload that agentd exec's
     /// per request. They can be combined freely.
-    pub fn init(mut self, cmd: impl Into<PathBuf>) -> Self {
+    pub fn init(mut self, cmd: impl Into<String>) -> Self {
         self.config.spec.init = Some(HandoffInit {
             cmd: cmd.into(),
             args: Vec::new(),
@@ -398,7 +448,7 @@ impl SandboxBuilder {
     /// pre-boot and one-shot.
     pub fn init_with(
         mut self,
-        cmd: impl Into<PathBuf>,
+        cmd: impl Into<String>,
         f: impl FnOnce(InitOptionsBuilder) -> InitOptionsBuilder,
     ) -> Self {
         let (args, env) = f(InitOptionsBuilder::default()).build();
@@ -464,7 +514,7 @@ impl SandboxBuilder {
     /// ```ignore
     /// .network(|n| n
     ///     .port(8080, 80)
-    ///     .policy(NetworkPolicy::public_only())
+    ///     .policy(NetworkPolicy::default())
     ///     .tls(|t| t.bypass("*.internal.com"))
     /// )
     /// ```
@@ -888,18 +938,55 @@ impl SandboxBuilder {
         }
 
         let snap = crate::snapshot::Snapshot::open(&snapshot_ref).await?;
+        if snap.manifest().scope != crate::snapshot::SnapshotScope::Disk {
+            return Err(crate::MicrosandboxError::Unsupported {
+                feature: "Restoring non-disk snapshots".into(),
+                available_when: "after resumable restore support lands; upgrade may be required"
+                    .into(),
+            });
+        }
+        let unsupported = snap.manifest().unsupported_requires();
+        if !unsupported.is_empty() {
+            return Err(crate::MicrosandboxError::Unsupported {
+                feature: format!(
+                    "snapshot requires capabilities this runtime does not have: {}",
+                    unsupported.join(", ")
+                ),
+                available_when: "in a runtime that understands these snapshot extensions".into(),
+            });
+        }
+        let file_state = match &snap.manifest().state {
+            crate::snapshot::SnapshotState::File(state) => state,
+            crate::snapshot::SnapshotState::Checkpoint(_) => {
+                return Err(crate::MicrosandboxError::Unsupported {
+                    feature: "Restoring checkpoint-state snapshots".into(),
+                    available_when: "after checkpoint restore providers land".into(),
+                });
+            }
+        };
+        if file_state.format != crate::snapshot::SnapshotFormat::Raw || file_state.fstype != "ext4"
+        {
+            return Err(crate::MicrosandboxError::Unsupported {
+                feature: format!(
+                    "Restoring snapshot file state {:?}/{}",
+                    file_state.format, file_state.fstype
+                ),
+                available_when: "after that disk format and filesystem contract is qualified"
+                    .into(),
+            });
+        }
         let snap_ref = snap.manifest().image.reference.clone();
 
         self.config.spec.image = RootfsSource::oci(snap_ref);
         self.config.manifest_digest = Some(snap.manifest().image.manifest_digest.clone());
-        self.config.snapshot_upper_source = Some(snap.path().join(&snap.manifest().upper.file));
+        self.config.snapshot_upper_source = Some(snap.path().join(&file_state.upper.file));
         Ok(())
     }
 
     fn has_explicit_rootfs_source(&self) -> bool {
         match &self.config.spec.image {
-            RootfsSource::Oci(oci) => !oci.reference.is_empty() || oci.upper_size_mib.is_some(),
-            RootfsSource::Bind(path) => !path.as_os_str().is_empty(),
+            RootfsSource::Oci(oci) => !oci.reference.is_empty() || oci.root_disk.is_some(),
+            RootfsSource::Bind { path, .. } => !path.as_os_str().is_empty(),
             RootfsSource::DiskImage { .. } => true,
         }
     }
@@ -1057,10 +1144,8 @@ impl SandboxBuilder {
                     "image source is required".into(),
                 ));
             }
-            RootfsSource::Oci(oci) if oci.upper_size_mib == Some(0) => {
-                return Err(crate::MicrosandboxError::InvalidConfig(
-                    "oci upper_size must be greater than 0".into(),
-                ));
+            RootfsSource::Oci(oci) => {
+                self.validate_root_disk(oci.root_disk.as_ref())?;
             }
             RootfsSource::DiskImage { .. } if !self.config.spec.patches.is_empty() => {
                 return Err(crate::MicrosandboxError::InvalidConfig(
@@ -1126,6 +1211,70 @@ impl SandboxBuilder {
         }
 
         Ok(())
+    }
+
+    /// Kind-specific root disk guards for an OCI rootfs.
+    fn validate_root_disk(
+        &self,
+        root_disk: Option<&super::types::RootDisk>,
+    ) -> MicrosandboxResult<()> {
+        use super::types::RootDisk;
+
+        match root_disk {
+            None | Some(RootDisk::Managed { size_mib: None }) => Ok(()),
+            Some(RootDisk::Managed { size_mib: Some(0) }) => {
+                Err(crate::MicrosandboxError::InvalidConfig(
+                    "root disk size must be greater than 0".into(),
+                ))
+            }
+            Some(RootDisk::Managed { .. }) => Ok(()),
+            Some(RootDisk::Tmpfs { size_mib }) => {
+                if *size_mib == Some(0) {
+                    return Err(crate::MicrosandboxError::InvalidConfig(
+                        "root disk size must be greater than 0".into(),
+                    ));
+                }
+                // tmpfs pages come from guest RAM and the guest has no swap:
+                // writes past memory are an OOM kill, not ENOSPC.
+                if let Some(size) = size_mib
+                    && *size > self.config.spec.resources.memory_mib
+                {
+                    return Err(crate::MicrosandboxError::InvalidConfig(format!(
+                        "tmpfs root disk size ({size} MiB) must not exceed sandbox memory ({} MiB)",
+                        self.config.spec.resources.memory_mib
+                    )));
+                }
+                if !self.config.spec.patches.is_empty() {
+                    return Err(crate::MicrosandboxError::InvalidConfig(
+                        "patches require a managed root disk (they are baked into the upper at create time)".into(),
+                    ));
+                }
+                if self.config.snapshot_upper_source.is_some() {
+                    return Err(crate::MicrosandboxError::InvalidConfig(
+                        "from_snapshot requires a managed root disk".into(),
+                    ));
+                }
+                Ok(())
+            }
+            Some(RootDisk::DiskImage { path, .. }) => {
+                if path.as_os_str().is_empty() {
+                    return Err(crate::MicrosandboxError::InvalidConfig(
+                        "disk-image root disk path must not be empty".into(),
+                    ));
+                }
+                if !self.config.spec.patches.is_empty() {
+                    return Err(crate::MicrosandboxError::InvalidConfig(
+                        "patches require a managed root disk (they are baked into the upper at create time)".into(),
+                    ));
+                }
+                if self.config.snapshot_upper_source.is_some() {
+                    return Err(crate::MicrosandboxError::InvalidConfig(
+                        "from_snapshot requires a managed root disk".into(),
+                    ));
+                }
+                Ok(())
+            }
+        }
     }
 }
 
@@ -1333,9 +1482,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_builder_image_with_oci_upper_size() {
+    async fn test_builder_image_with_root_disk() {
         let config = SandboxBuilder::new("test")
-            .image_with(|i| i.oci("alpine").upper_size(8192u32))
+            .image_with(|i| i.oci("alpine").root_disk(8192u32))
             .build()
             .await
             .unwrap();
@@ -1343,33 +1492,87 @@ mod tests {
         match &config.spec.image {
             super::RootfsSource::Oci(oci) => {
                 assert_eq!(oci.reference, "alpine");
-                assert_eq!(oci.upper_size_mib, Some(8192));
+                assert_eq!(oci.root_disk, Some(crate::sandbox::RootDisk::managed(8192)));
             }
             other => panic!("expected Oci, got {other:?}"),
         }
     }
 
     #[tokio::test]
-    async fn test_builder_leaves_backend_oci_upper_default_unmaterialized() {
+    async fn test_builder_leaves_backend_root_disk_default_unmaterialized() {
         let config = SandboxBuilder::new("test")
             .image("alpine")
             .build()
             .await
             .unwrap();
 
-        assert_eq!(config.spec.image.oci_upper_size_mib(), None);
+        assert!(config.spec.image.oci_root_disk().is_none());
     }
 
     #[tokio::test]
-    async fn test_builder_oci_upper_size_rejects_bind_rootfs() {
+    async fn test_builder_root_disk_rejects_bind_rootfs() {
         let err = SandboxBuilder::new("test")
             .image("/tmp/rootfs")
-            .oci_upper_size(8192u32)
+            .root_disk(8192u32)
             .build()
             .await
             .unwrap_err();
 
         assert!(err.to_string().contains("only valid for OCI images"));
+    }
+
+    #[tokio::test]
+    async fn test_builder_root_disk_rejects_disk_image_rootfs() {
+        let err = SandboxBuilder::new("test")
+            .image_with(|i| i.disk("./rootfs.qcow2"))
+            .root_disk(8192u32)
+            .build()
+            .await
+            .unwrap_err();
+
+        assert!(err.to_string().contains("only valid for OCI images"));
+    }
+
+    #[tokio::test]
+    async fn test_builder_tmpfs_root_disk_rejects_size_over_memory() {
+        let err = SandboxBuilder::new("test")
+            .image("alpine")
+            .memory(1024u32)
+            .root_disk_with(|d| d.tmpfs().size(2048u32))
+            .build()
+            .await
+            .unwrap_err();
+
+        assert!(err.to_string().contains("must not exceed sandbox memory"));
+    }
+
+    #[tokio::test]
+    async fn test_builder_tmpfs_root_disk_rejects_patches() {
+        let err = SandboxBuilder::new("test")
+            .image("alpine")
+            .root_disk_with(|d| d.tmpfs())
+            .patch(|p| p.text("/etc/motd", "hello", None, true))
+            .build()
+            .await
+            .unwrap_err();
+
+        assert!(err.to_string().contains("require a managed root disk"));
+    }
+
+    #[tokio::test]
+    async fn test_builder_deprecated_oci_upper_size_alias() {
+        #[allow(deprecated)]
+        let config = SandboxBuilder::new("test")
+            .image("alpine")
+            .oci_upper_size(8192u32)
+            .build()
+            .await
+            .unwrap();
+
+        assert_eq!(
+            config.spec.image.oci_root_disk(),
+            Some(&crate::sandbox::RootDisk::managed(8192))
+        );
     }
 
     #[tokio::test]
@@ -1388,9 +1591,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_builder_from_snapshot_rejects_explicit_oci_upper_size() {
+    async fn test_builder_from_snapshot_rejects_explicit_root_disk() {
         let err = SandboxBuilder::new("test")
-            .image_with(|i| i.oci("").upper_size(8192u32))
+            .image_with(|i| i.oci("").root_disk(8192u32))
             .from_snapshot("/tmp/missing-snapshot")
             .build()
             .await

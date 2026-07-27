@@ -54,7 +54,43 @@ package ffi
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
+#ifdef _WIN32
+// Windows has no dlfcn.h: provide dlopen/dlsym/dlerror equivalents via
+// LoadLibrary/GetProcAddress (only the subset this file uses: dlopen/dlsym/dlerror
+// plus RTLD_NOW/RTLD_LOCAL; no dlclose).
+#include <windows.h>
+static void *dlopen(const char *path, int mode) {
+	(void)mode;
+	// path arrives as UTF-8 from Go (it contains the user's home dir, so
+	// non-ASCII is routine). LoadLibraryA would decode it in the legacy
+	// ANSI codepage and fail on such paths; convert and use the wide API.
+	wchar_t wpath[4096];
+	if (MultiByteToWideChar(CP_UTF8, 0, path, -1, wpath, 4096) == 0) {
+		return NULL;
+	}
+	return (void *)LoadLibraryW(wpath);
+}
+static void *dlsym(void *handle, const char *symbol) {
+	return (void *)(intptr_t)GetProcAddress((HMODULE)handle, symbol);
+}
+static const char *dlerror(void) {
+	static char buf[256];
+	DWORD e = GetLastError();
+	if (e == 0) {
+		return NULL;
+	}
+	snprintf(buf, sizeof(buf), "windows loader error %lu", (unsigned long)e);
+	return buf;
+}
+#ifndef RTLD_NOW
+#define RTLD_NOW 0
+#endif
+#ifndef RTLD_LOCAL
+#define RTLD_LOCAL 0
+#endif
+#else
 #include <dlfcn.h>
+#endif
 #include <string.h>
 
 // ---------------------------------------------------------------------------
@@ -113,6 +149,7 @@ typedef char *(*msb_sftp_close_fn)(uint64_t cancel_id, uint64_t sftp_handle, uin
 typedef char *(*msb_exec_recv_fn)(uint64_t cancel_id, uint64_t exec_handle, uint8_t *buf, size_t buf_len);
 typedef char *(*msb_exec_close_fn)(uint64_t cancel_id, uint64_t exec_handle, uint8_t *buf, size_t buf_len);
 typedef char *(*msb_exec_signal_fn)(uint64_t cancel_id, uint64_t exec_handle, int32_t signal, uint8_t *buf, size_t buf_len);
+typedef char *(*msb_exec_resize_fn)(uint64_t cancel_id, uint64_t exec_handle, uint16_t rows, uint16_t cols, uint8_t *buf, size_t buf_len);
 typedef char *(*msb_exec_collect_fn)(uint64_t cancel_id, uint64_t exec_handle, uint8_t *buf, size_t buf_len);
 typedef char *(*msb_exec_wait_fn)(uint64_t cancel_id, uint64_t exec_handle, uint8_t *buf, size_t buf_len);
 typedef char *(*msb_exec_kill_fn)(uint64_t cancel_id, uint64_t exec_handle, uint8_t *buf, size_t buf_len);
@@ -168,9 +205,10 @@ typedef char *(*msb_image_list_fn)(uint64_t cancel_id, uint8_t *buf, size_t buf_
 typedef char *(*msb_image_inspect_fn)(uint64_t cancel_id, const char *reference, uint8_t *buf, size_t buf_len);
 typedef char *(*msb_image_remove_fn)(uint64_t cancel_id, const char *reference, bool force, uint8_t *buf, size_t buf_len);
 typedef char *(*msb_image_prune_fn)(uint64_t cancel_id, uint8_t *buf, size_t buf_len);
+typedef char *(*msb_image_load_fn)(uint64_t cancel_id, const char *input_path, const char *tags_json, uint8_t *buf, size_t buf_len);
+typedef char *(*msb_image_save_fn)(uint64_t cancel_id, const char *references_json, const char *output_path, const char *format, uint8_t *buf, size_t buf_len);
 
 typedef char *(*msb_sandbox_handle_snapshot_fn)(uint64_t cancel_id, const char *sandbox_name, const char *snapshot_name, uint8_t *buf, size_t buf_len);
-typedef char *(*msb_sandbox_handle_snapshot_to_fn)(uint64_t cancel_id, const char *sandbox_name, const char *path, uint8_t *buf, size_t buf_len);
 typedef char *(*msb_snapshot_create_fn)(uint64_t cancel_id, const char *source_sandbox, const char *opts_json, uint8_t *buf, size_t buf_len);
 typedef char *(*msb_snapshot_open_fn)(uint64_t cancel_id, const char *path_or_name, uint8_t *buf, size_t buf_len);
 typedef char *(*msb_snapshot_verify_fn)(uint64_t cancel_id, const char *path_or_name, uint8_t *buf, size_t buf_len);
@@ -253,6 +291,7 @@ static msb_sftp_close_fn         ptr_msb_sftp_close         = NULL;
 static msb_exec_recv_fn          ptr_msb_exec_recv          = NULL;
 static msb_exec_close_fn         ptr_msb_exec_close         = NULL;
 static msb_exec_signal_fn        ptr_msb_exec_signal        = NULL;
+static msb_exec_resize_fn        ptr_msb_exec_resize        = NULL;
 static msb_fs_read_fn            ptr_msb_fs_read            = NULL;
 static msb_fs_write_fn           ptr_msb_fs_write           = NULL;
 static msb_fs_list_fn            ptr_msb_fs_list            = NULL;
@@ -317,8 +356,9 @@ static msb_image_list_fn           ptr_msb_image_list           = NULL;
 static msb_image_inspect_fn        ptr_msb_image_inspect        = NULL;
 static msb_image_remove_fn         ptr_msb_image_remove         = NULL;
 static msb_image_prune_fn         ptr_msb_image_prune         = NULL;
+static msb_image_load_fn           ptr_msb_image_load           = NULL;
+static msb_image_save_fn           ptr_msb_image_save           = NULL;
 static msb_sandbox_handle_snapshot_fn ptr_msb_sandbox_handle_snapshot = NULL;
-static msb_sandbox_handle_snapshot_to_fn ptr_msb_sandbox_handle_snapshot_to = NULL;
 static msb_snapshot_create_fn      ptr_msb_snapshot_create      = NULL;
 static msb_snapshot_open_fn        ptr_msb_snapshot_open        = NULL;
 static msb_snapshot_verify_fn      ptr_msb_snapshot_verify      = NULL;
@@ -412,6 +452,7 @@ const char *load_microsandbox(const char *path) {
 	RESOLVE(msb_exec_recv);
 	RESOLVE(msb_exec_close);
 	RESOLVE(msb_exec_signal);
+	RESOLVE(msb_exec_resize);
 	RESOLVE(msb_fs_read);
 	RESOLVE(msb_fs_write);
 	RESOLVE(msb_fs_list);
@@ -476,8 +517,9 @@ const char *load_microsandbox(const char *path) {
 	RESOLVE(msb_image_inspect);
 	RESOLVE(msb_image_remove);
 	RESOLVE(msb_image_prune);
+	RESOLVE(msb_image_load);
+	RESOLVE(msb_image_save);
 	RESOLVE(msb_sandbox_handle_snapshot);
-	RESOLVE(msb_sandbox_handle_snapshot_to);
 	RESOLVE(msb_snapshot_create);
 	RESOLVE(msb_snapshot_open);
 	RESOLVE(msb_snapshot_verify);
@@ -650,6 +692,9 @@ char *call_msb_exec_close(uint64_t cancel_id, uint64_t exec_handle, uint8_t *buf
 }
 char *call_msb_exec_signal(uint64_t cancel_id, uint64_t exec_handle, int32_t signal, uint8_t *buf, size_t buf_len) {
 	return ptr_msb_exec_signal ? ptr_msb_exec_signal(cancel_id, exec_handle, signal, buf, buf_len) : NULL;
+}
+char *call_msb_exec_resize(uint64_t cancel_id, uint64_t exec_handle, uint16_t rows, uint16_t cols, uint8_t *buf, size_t buf_len) {
+	return ptr_msb_exec_resize ? ptr_msb_exec_resize(cancel_id, exec_handle, rows, cols, buf, buf_len) : NULL;
 }
 char *call_msb_fs_read(uint64_t cancel_id, uint64_t handle, const char *path, uint8_t *buf, size_t buf_len) {
 	return ptr_msb_fs_read ? ptr_msb_fs_read(cancel_id, handle, path, buf, buf_len) : NULL;
@@ -843,11 +888,14 @@ char *call_msb_image_remove(uint64_t cancel_id, const char *reference, bool forc
 char *call_msb_image_prune(uint64_t cancel_id, uint8_t *buf, size_t buf_len) {
 	return ptr_msb_image_prune ? ptr_msb_image_prune(cancel_id, buf, buf_len) : NULL;
 }
+char *call_msb_image_load(uint64_t cancel_id, const char *input_path, const char *tags_json, uint8_t *buf, size_t buf_len) {
+	return ptr_msb_image_load ? ptr_msb_image_load(cancel_id, input_path, tags_json, buf, buf_len) : NULL;
+}
+char *call_msb_image_save(uint64_t cancel_id, const char *references_json, const char *output_path, const char *format, uint8_t *buf, size_t buf_len) {
+	return ptr_msb_image_save ? ptr_msb_image_save(cancel_id, references_json, output_path, format, buf, buf_len) : NULL;
+}
 char *call_msb_sandbox_handle_snapshot(uint64_t cancel_id, const char *sandbox_name, const char *snapshot_name, uint8_t *buf, size_t buf_len) {
 	return ptr_msb_sandbox_handle_snapshot ? ptr_msb_sandbox_handle_snapshot(cancel_id, sandbox_name, snapshot_name, buf, buf_len) : NULL;
-}
-char *call_msb_sandbox_handle_snapshot_to(uint64_t cancel_id, const char *sandbox_name, const char *path, uint8_t *buf, size_t buf_len) {
-	return ptr_msb_sandbox_handle_snapshot_to ? ptr_msb_sandbox_handle_snapshot_to(cancel_id, sandbox_name, path, buf, buf_len) : NULL;
 }
 char *call_msb_snapshot_create(uint64_t cancel_id, const char *source_sandbox, const char *opts_json, uint8_t *buf, size_t buf_len) {
 	return ptr_msb_snapshot_create ? ptr_msb_snapshot_create(cancel_id, source_sandbox, opts_json, buf, buf_len) : NULL;
@@ -1028,6 +1076,7 @@ const (
 	KindSnapshotSandboxRunning = "snapshot_sandbox_running"
 	KindSnapshotImageMissing   = "snapshot_image_missing"
 	KindSnapshotIntegrity      = "snapshot_integrity"
+	KindSnapshotMigration      = "snapshot_migration"
 	KindPatchFailed            = "patch_failed"
 	KindMetricsDisabled        = "metrics_disabled"
 	KindMetricsUnavailable     = "metrics_unavailable"
@@ -1430,7 +1479,7 @@ type CreateOptions struct {
 	Image                string               `json:"image,omitempty"`
 	ImageFstype          string               `json:"image_fstype,omitempty"`
 	ImageBind            string               `json:"image_bind,omitempty"`
-	OCIUpperSizeMiB      *uint32              `json:"oci_upper_size_mib,omitempty"`
+	RootDisk             *RootDiskSpec        `json:"root_disk,omitempty"`
 	Snapshot             string               `json:"snapshot,omitempty"`
 	MemoryMiB            uint32               `json:"memory_mib,omitempty"`
 	CPUs                 uint8                `json:"cpus,omitempty"`
@@ -1478,6 +1527,17 @@ type RegistryAuthOptions struct {
 	Password string `json:"password"`
 }
 
+// RootDiskSpec describes the writable rootfs layer (root disk) of an OCI
+// image. Kind is "managed", "tmpfs", or "disk-image"; SizeMiB is a pointer
+// so an explicit zero reaches the wire for validation.
+type RootDiskSpec struct {
+	Kind    string  `json:"kind"`
+	SizeMiB *uint32 `json:"size_mib,omitempty"`
+	Path    string  `json:"path,omitempty"`
+	Format  string  `json:"format,omitempty"`
+	Fstype  string  `json:"fstype,omitempty"`
+}
+
 // MountSpec describes a volume mount for a sandbox.
 type MountSpec struct {
 	Bind               string `json:"bind,omitempty"`
@@ -1500,7 +1560,6 @@ type MountSpec struct {
 
 // NetworkOptions is the JSON representation of the network config block.
 type NetworkOptions struct {
-	Policy              string               `json:"policy,omitempty"`
 	CustomPolicy        *CustomNetworkPolicy `json:"custom_policy,omitempty"`
 	DNS                 *DNSOptions          `json:"dns,omitempty"`
 	DNSRebindProtection *bool                `json:"dns_rebind_protection,omitempty"`
@@ -2221,6 +2280,7 @@ type ExecOptions struct {
 	Cwd         string            `json:"cwd,omitempty"`
 	TimeoutSecs uint64            `json:"timeout_secs,omitempty"`
 	StdinPipe   bool              `json:"stdin_pipe,omitempty"`
+	TTY         bool              `json:"tty,omitempty"`
 	User        string            `json:"user,omitempty"`
 	Env         map[string]string `json:"env,omitempty"`
 }
@@ -2687,7 +2747,8 @@ func (srv *SSHServer) ServeConnection(ctx context.Context) error {
 
 // ExecStreamHandle is an opaque reference to a running streaming exec session.
 // Go owns the u64 token; Rust owns the channel resources until Close is called.
-// Not safe for concurrent use from multiple goroutines.
+// Signal, Kill, and Resize may be called concurrently with Recv. Other method
+// combinations, including concurrent Recv calls, are not supported.
 type ExecStreamHandle struct {
 	handle C.uint64_t
 	// stdinPiped reflects whether the session was started with stdin_pipe=true.
@@ -2904,6 +2965,17 @@ func (h *ExecStreamHandle) Signal(ctx context.Context, signal int) error {
 	}
 	_, err := call(ctx, func(cancelID C.uint64_t, buf *C.uint8_t, bufLen C.size_t) *C.char {
 		return C.call_msb_exec_signal(cancelID, h.handle, C.int32_t(signal), buf, bufLen)
+	})
+	return err
+}
+
+// Resize changes the pseudo-terminal size for this exec session.
+func (h *ExecStreamHandle) Resize(ctx context.Context, rows, cols uint16) error {
+	if err := ensureLoaded(); err != nil {
+		return err
+	}
+	_, err := call(ctx, func(cancelID C.uint64_t, buf *C.uint8_t, bufLen C.size_t) *C.char {
+		return C.call_msb_exec_resize(cancelID, h.handle, C.uint16_t(rows), C.uint16_t(cols), buf, bufLen)
 	})
 	return err
 }
@@ -4139,33 +4211,104 @@ func ImagePrune(ctx context.Context) (*ImagePruneReportInfo, error) {
 	return &info, nil
 }
 
+// ImageLoad imports images from a local archive into the cache and returns
+// a handle per imported reference. tags apply extra references to the first
+// image in the archive.
+func ImageLoad(ctx context.Context, inputPath string, tags []string) ([]*ImageHandleInfo, error) {
+	if err := ensureLoaded(); err != nil {
+		return nil, err
+	}
+	if tags == nil {
+		tags = []string{}
+	}
+	tagsJSON, err := json.Marshal(tags)
+	if err != nil {
+		return nil, fmt.Errorf("encode tags: %w", err)
+	}
+	cPath := C.CString(inputPath)
+	defer C.free(unsafe.Pointer(cPath))
+	cTags := C.CString(string(tagsJSON))
+	defer C.free(unsafe.Pointer(cTags))
+	out, err := call(ctx, func(cancelID C.uint64_t, buf *C.uint8_t, bufLen C.size_t) *C.char {
+		return C.call_msb_image_load(cancelID, cPath, cTags, buf, bufLen)
+	})
+	if err != nil {
+		return nil, err
+	}
+	var infos []*ImageHandleInfo
+	if err := json.Unmarshal([]byte(out), &infos); err != nil {
+		return nil, fmt.Errorf("parse image_load: %w", err)
+	}
+	return infos, nil
+}
+
+// ImageSave exports cached images to an archive file. format is "docker" or
+// "oci"; empty means docker.
+func ImageSave(ctx context.Context, references []string, outputPath string, format string) error {
+	if err := ensureLoaded(); err != nil {
+		return err
+	}
+	if references == nil {
+		references = []string{}
+	}
+	referencesJSON, err := json.Marshal(references)
+	if err != nil {
+		return fmt.Errorf("encode references: %w", err)
+	}
+	cRefs := C.CString(string(referencesJSON))
+	defer C.free(unsafe.Pointer(cRefs))
+	cPath := C.CString(outputPath)
+	defer C.free(unsafe.Pointer(cPath))
+	cFormat := C.CString(format)
+	defer C.free(unsafe.Pointer(cFormat))
+	_, err = call(ctx, func(cancelID C.uint64_t, buf *C.uint8_t, bufLen C.size_t) *C.char {
+		return C.call_msb_image_save(cancelID, cRefs, cPath, cFormat, buf, bufLen)
+	})
+	return err
+}
+
 // ---------------------------------------------------------------------------
 // Snapshots
 // ---------------------------------------------------------------------------
 
 type SnapshotInfo struct {
-	Path                string            `json:"path"`
-	Digest              string            `json:"digest"`
-	SizeBytes           uint64            `json:"size_bytes"`
-	ImageRef            string            `json:"image_ref"`
-	ImageManifestDigest string            `json:"image_manifest_digest"`
-	Format              string            `json:"format"`
-	Fstype              string            `json:"fstype"`
-	Parent              *string           `json:"parent"`
-	CreatedAt           string            `json:"created_at"`
-	Labels              map[string]string `json:"labels"`
-	SourceSandbox       *string           `json:"source_sandbox"`
+	Path                     string            `json:"path"`
+	Digest                   string            `json:"digest"`
+	SizeBytes                *uint64           `json:"size_bytes"`
+	ImageRef                 string            `json:"image_ref"`
+	ImageManifestDigest      string            `json:"image_manifest_digest"`
+	Scope                    string            `json:"scope"`
+	StateKind                string            `json:"state_kind"`
+	Format                   *string           `json:"format"`
+	Fstype                   *string           `json:"fstype"`
+	UpperFile                *string           `json:"upper_file"`
+	UpperIntegrityAlgorithm  *string           `json:"upper_integrity_algorithm"`
+	UpperIntegrityDigest     *string           `json:"upper_integrity_digest"`
+	CheckpointID             *string           `json:"checkpoint_id"`
+	CheckpointManifestDigest *string           `json:"checkpoint_manifest_digest"`
+	Parent                   *string           `json:"parent"`
+	CreatedAt                string            `json:"created_at"`
+	Labels                   map[string]string `json:"labels"`
+	SourceSandbox            *string           `json:"source_sandbox"`
 }
 
 type SnapshotHandleInfo struct {
-	Digest        string  `json:"digest"`
-	Name          *string `json:"name"`
-	ParentDigest  *string `json:"parent_digest"`
-	ImageRef      string  `json:"image_ref"`
-	Format        string  `json:"format"`
-	SizeBytes     *uint64 `json:"size_bytes"`
-	CreatedAtUnix int64   `json:"created_at_unix"`
-	Path          string  `json:"path"`
+	Digest                   string  `json:"digest"`
+	Name                     *string `json:"name"`
+	ParentDigest             *string `json:"parent_digest"`
+	ImageRef                 string  `json:"image_ref"`
+	Scope                    string  `json:"scope"`
+	StateKind                string  `json:"state_kind"`
+	Format                   *string `json:"format"`
+	Fstype                   *string `json:"fstype"`
+	CheckpointManifestDigest *string `json:"checkpoint_manifest_digest"`
+	SizeBytes                *uint64 `json:"size_bytes"`
+	Locality                 string  `json:"locality"`
+	Availability             string  `json:"availability"`
+	MigrationState           string  `json:"migration_state"`
+	MigrationErrorCode       *string `json:"migration_error_code"`
+	CreatedAtUnix            int64   `json:"created_at_unix"`
+	Path                     string  `json:"path"`
 }
 
 type SnapshotVerifyReport struct {
@@ -4180,13 +4323,14 @@ type SnapshotVerifyReport struct {
 
 type SnapshotCreateOptions struct {
 	Name            string            `json:"name,omitempty"`
-	Path            string            `json:"path,omitempty"`
+	DestDir         string            `json:"dest_dir,omitempty"`
 	Labels          map[string]string `json:"labels,omitempty"`
 	Force           bool              `json:"force,omitempty"`
 	RecordIntegrity bool              `json:"record_integrity,omitempty"`
+	Resumable       bool              `json:"resumable,omitempty"`
 }
 
-type SnapshotExportOptions struct {
+type SnapshotSaveOptions struct {
 	WithParents bool `json:"with_parents,omitempty"`
 	WithImage   bool `json:"with_image,omitempty"`
 	PlainTar    bool `json:"plain_tar,omitempty"`
@@ -4202,27 +4346,6 @@ func SandboxHandleSnapshot(ctx context.Context, sandboxName, snapshotName string
 	defer C.free(unsafe.Pointer(cSnapshot))
 	out, err := call(ctx, func(cancelID C.uint64_t, buf *C.uint8_t, bufLen C.size_t) *C.char {
 		return C.call_msb_sandbox_handle_snapshot(cancelID, cSandbox, cSnapshot, buf, bufLen)
-	})
-	if err != nil {
-		return nil, err
-	}
-	var info SnapshotInfo
-	if err := json.Unmarshal([]byte(out), &info); err != nil {
-		return nil, fmt.Errorf("parse snapshot: %w", err)
-	}
-	return &info, nil
-}
-
-func SandboxHandleSnapshotTo(ctx context.Context, sandboxName, path string) (*SnapshotInfo, error) {
-	if err := ensureLoaded(); err != nil {
-		return nil, err
-	}
-	cSandbox := C.CString(sandboxName)
-	defer C.free(unsafe.Pointer(cSandbox))
-	cPath := C.CString(path)
-	defer C.free(unsafe.Pointer(cPath))
-	out, err := call(ctx, func(cancelID C.uint64_t, buf *C.uint8_t, bufLen C.size_t) *C.char {
-		return C.call_msb_sandbox_handle_snapshot_to(cancelID, cSandbox, cPath, buf, bufLen)
 	})
 	if err != nil {
 		return nil, err
@@ -4385,7 +4508,7 @@ func SnapshotReindex(ctx context.Context, dir string) (uint32, error) {
 	return raw.Indexed, nil
 }
 
-func SnapshotExport(ctx context.Context, nameOrPath, outPath string, opts SnapshotExportOptions) error {
+func SnapshotSave(ctx context.Context, nameOrPath, outPath string, opts SnapshotSaveOptions) error {
 	if err := ensureLoaded(); err != nil {
 		return err
 	}
@@ -4405,7 +4528,7 @@ func SnapshotExport(ctx context.Context, nameOrPath, outPath string, opts Snapsh
 	return err
 }
 
-func SnapshotImport(ctx context.Context, archive, dest string) (*SnapshotHandleInfo, error) {
+func SnapshotLoad(ctx context.Context, archive, dest string) (*SnapshotHandleInfo, error) {
 	if err := ensureLoaded(); err != nil {
 		return nil, err
 	}
@@ -4421,7 +4544,7 @@ func SnapshotImport(ctx context.Context, archive, dest string) (*SnapshotHandleI
 	}
 	var info SnapshotHandleInfo
 	if err := json.Unmarshal([]byte(out), &info); err != nil {
-		return nil, fmt.Errorf("parse snapshot import: %w", err)
+		return nil, fmt.Errorf("parse snapshot load: %w", err)
 	}
 	return &info, nil
 }

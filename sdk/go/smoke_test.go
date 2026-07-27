@@ -5,7 +5,7 @@
 //
 // Run with:
 //
-//	MICROSANDBOX_FFI_PATH=/path/to/libmicrosandbox_go_ffi.{so,dylib} \
+//	MICROSANDBOX_FFI_PATH=/path/to/libmicrosandbox_go_ffi.{so,dylib,dll} \
 //	    go test -tags "smoke microsandbox_ffi_path" -count=1 ./...
 //
 // The microsandbox_ffi_path build tag swaps the embedded FFI for a
@@ -159,7 +159,7 @@ func TestSmokeSnapshotReindexEmpty(t *testing.T) {
 	}
 }
 
-func TestSmokeSnapshotImportBogusErrors(t *testing.T) {
+func TestSmokeSnapshotLoadBogusErrors(t *testing.T) {
 	ctx := smokeSetup(t)
 	tmp := t.TempDir()
 	archive := filepath.Join(tmp, "bogus.tar")
@@ -168,9 +168,9 @@ func TestSmokeSnapshotImportBogusErrors(t *testing.T) {
 	}
 	dest := filepath.Join(tmp, "imported")
 
-	_, err := Snapshot.Import(ctx, archive, dest)
+	_, err := Snapshot.Load(ctx, archive, dest)
 	if err == nil {
-		t.Fatal("expected import of bogus archive to fail")
+		t.Fatal("expected load of bogus archive to fail")
 	}
 	var me *Error
 	if !errors.As(err, &me) {

@@ -18,21 +18,28 @@ use crate::ui;
 pub struct RunArgs {
     /// Image to use (e.g. alpine, python, ./rootfs, ./disk.qcow2).
     ///
-    /// Mutually exclusive with `--snapshot`; one of the two is required.
-    #[arg(required_unless_present = "snapshot", conflicts_with = "snapshot")]
+    /// Mutually exclusive with `--from-snapshot`; one of the two is required.
+    #[arg(
+        required_unless_present = "from_snapshot",
+        conflicts_with = "from_snapshot"
+    )]
     pub image: Option<String>,
 
     /// Boot a fresh sandbox from a snapshot artifact (path or name).
     ///
-    /// The snapshot pins the image; passing `--snapshot` is equivalent
+    /// The snapshot pins the image; passing `--from-snapshot` is equivalent
     /// to specifying the snapshot's image plus pre-populating the
     /// upper layer from the artifact.
-    #[arg(long, value_name = "PATH_OR_NAME")]
-    pub snapshot: Option<String>,
+    #[arg(
+        long = "from-snapshot",
+        alias = "from-snap",
+        value_name = "PATH_OR_NAME"
+    )]
+    pub from_snapshot: Option<String>,
 
-    /// Start the sandbox in the background and print its name.
+    /// Run the resolved image command in the background and print the sandbox name.
     ///
-    /// Use `msb exec` to run commands in a detached sandbox.
+    /// Use `msb create` to boot an idle sandbox without starting the image command.
     #[arg(short, long)]
     pub detach: bool,
 
@@ -56,7 +63,9 @@ pub struct RunArgs {
     #[arg(long)]
     pub detach_keys: Option<String>,
 
-    /// Command to run inside the sandbox in attached mode (after --).
+    /// Command to run inside the sandbox (after --).
+    ///
+    /// Replaces the image CMD while preserving its effective entrypoint.
     #[arg(last = true)]
     pub command: Vec<String>,
 
@@ -162,12 +171,12 @@ async fn run_new(
     log_level: Option<microsandbox::LogLevel>,
 ) -> anyhow::Result<()> {
     let mut builder = Sandbox::builder(&name);
-    if let Some(ref snap) = args.snapshot {
+    if let Some(ref snap) = args.from_snapshot {
         builder = builder.from_snapshot(snap.clone());
     } else if let Some(ref image) = args.image {
         builder = builder.image(image.as_str());
     } else {
-        anyhow::bail!("either an image or --snapshot is required");
+        anyhow::bail!("either an image or --from-snapshot is required");
     }
     if args.sandbox.log_level.is_none()
         && let Some(log_level) = log_level
@@ -183,9 +192,9 @@ async fn run_new(
         builder = builder.ephemeral(true);
     }
     if args.detach {
-        builder = builder.persistent_initial_command(args.command.clone());
+        builder = builder.background_command(args.command.clone());
     } else {
-        builder = builder.initial_command(args.command.clone());
+        builder = builder.foreground_command(args.command.clone());
     }
 
     // Create sandbox with pull progress — select attached vs detached mode.
@@ -197,7 +206,7 @@ async fn run_new(
     };
 
     let display_label = args
-        .snapshot
+        .from_snapshot
         .clone()
         .or_else(|| args.image.clone())
         .unwrap_or_else(|| name.clone());
@@ -337,9 +346,12 @@ fn handle_exit(exit_code: i32) -> anyhow::Result<()> {
 /// Describe creation-only inputs that are ignored when reusing an
 /// existing named sandbox.
 fn ignored_existing_inputs(args: &RunArgs) -> Option<&'static str> {
-    match (args.snapshot.is_some(), args.sandbox.has_creation_flags()) {
-        (true, true) => Some("--snapshot and creation flags"),
-        (true, false) => Some("--snapshot"),
+    match (
+        args.from_snapshot.is_some(),
+        args.sandbox.has_creation_flags(),
+    ) {
+        (true, true) => Some("--from-snapshot and creation flags"),
+        (true, false) => Some("--from-snapshot"),
         (false, true) => Some("creation flags"),
         (false, false) => None,
     }
@@ -410,6 +422,52 @@ mod tests {
     }
 
     #[test]
+    fn detached_entrypoint_can_use_image_cmd() {
+        let args = parse_run_args(&[
+            "--detach",
+            "--entrypoint",
+            "start-desktop",
+            "debian:bookworm-slim",
+        ]);
+
+        assert!(args.detach);
+        assert_eq!(args.sandbox.entrypoint.as_deref(), Some("start-desktop"));
+        assert!(args.command.is_empty());
+    }
+
+    #[test]
+    fn detach_help_points_idle_workloads_to_create() {
+        let mut help = Vec::new();
+        <TestCli as clap::CommandFactory>::command()
+            .write_long_help(&mut help)
+            .unwrap();
+        let help = String::from_utf8(help).unwrap();
+
+        assert!(help.contains("Use `msb create` to boot an idle sandbox"));
+    }
+
+    #[cfg(feature = "net")]
+    #[test]
+    fn net_profiles_are_repeatable_and_preserve_comma_groups() {
+        let args = parse_run_args(&["--net", "public,private", "--net", "host", "alpine"]);
+        assert_eq!(args.sandbox.net, ["public,private", "host"]);
+    }
+
+    #[cfg(feature = "net")]
+    #[test]
+    fn net_profile_conflicts_with_low_level_default_baselines() {
+        for conflicting in ["--no-net", "--net-default"] {
+            let mut argv = vec!["msb", "--net", "public", conflicting];
+            if conflicting == "--net-default" {
+                argv.push("deny");
+            }
+            argv.push("alpine");
+            let err = TestCli::try_parse_from(argv).unwrap_err();
+            assert_eq!(err.kind(), ErrorKind::ArgumentConflict);
+        }
+    }
+
+    #[test]
     fn existing_reuse_does_not_warn_for_required_image() {
         let args = parse_run_args(&["--name", "box", "alpine", "--", "echo", "hello"]);
 
@@ -418,18 +476,44 @@ mod tests {
 
     #[test]
     fn existing_reuse_warns_for_snapshot() {
-        let args = parse_run_args(&["--name", "box", "--detach", "--snapshot", "clean"]);
+        let args = parse_run_args(&["--name", "box", "--detach", "--from-snapshot", "clean"]);
 
-        assert_eq!(ignored_existing_inputs(&args), Some("--snapshot"));
+        assert_eq!(ignored_existing_inputs(&args), Some("--from-snapshot"));
+    }
+
+    #[test]
+    fn from_snap_is_an_alias_for_from_snapshot() {
+        let args = parse_run_args(&["--name", "box", "--from-snap", "clean"]);
+
+        assert_eq!(args.from_snapshot.as_deref(), Some("clean"));
+    }
+
+    #[test]
+    fn from_snap_alias_is_hidden_from_help() {
+        let mut help = Vec::new();
+        <TestCli as clap::CommandFactory>::command()
+            .write_long_help(&mut help)
+            .unwrap();
+        let help = String::from_utf8(help).unwrap();
+
+        assert!(help.contains("--from-snapshot"));
+        assert!(!help.contains("--from-snap "));
     }
 
     #[test]
     fn existing_reuse_warns_for_snapshot_and_creation_flags() {
-        let args = parse_run_args(&["--name", "box", "--memory", "1G", "--snapshot", "clean"]);
+        let args = parse_run_args(&[
+            "--name",
+            "box",
+            "--memory",
+            "1G",
+            "--from-snapshot",
+            "clean",
+        ]);
 
         assert_eq!(
             ignored_existing_inputs(&args),
-            Some("--snapshot and creation flags")
+            Some("--from-snapshot and creation flags")
         );
     }
 }

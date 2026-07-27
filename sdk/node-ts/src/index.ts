@@ -97,18 +97,23 @@ export {
 export { Snapshot } from "./snapshot.js";
 import { Snapshot as _Snapshot, type SnapshotBuilder as _SnapBT } from "./snapshot.js";
 /**
- * Native fluent builder for a snapshot. `new SnapshotBuilder(sourceSandbox)`
- * is equivalent to `Snapshot.builder(sourceSandbox)`.
+ * Native fluent builder for a snapshot. `new SnapshotBuilder(name)`
+ * is equivalent to `Snapshot.builder(name)`.
  */
 export const SnapshotBuilder = function SnapshotBuilder(
   this: unknown,
-  sourceSandbox: string,
+  name: string,
 ) {
-  return _Snapshot.builder(sourceSandbox);
-} as unknown as new (sourceSandbox: string) => _SnapBT;
+  return _Snapshot.builder(name);
+} as unknown as new (name: string) => _SnapBT;
 export type SnapshotBuilder = _SnapBT;
 export { SnapshotHandle } from "./snapshot-handle.js";
-export type { ExportOpts, SnapshotVerifyReport } from "./snapshot.js";
+export type {
+  SaveOpts,
+  SnapshotScope,
+  SnapshotState,
+  SnapshotVerifyReport,
+} from "./snapshot.js";
 
 // Image management
 export { Image, ImageHandle } from "./image.js";
@@ -137,8 +142,8 @@ export { MetricsStream } from "./metrics-stream.js";
 
 // Attach a JS-side `policy(NetworkPolicy)` method to the native
 // `NetworkBuilder.prototype` so callers can pass the plain
-// `NetworkPolicy` object produced by `NetworkPolicy.publicOnly()` /
-// `.allowAll()` / `.none()` / `.nonLocal()` and the custom-rule
+// `NetworkPolicy` object produced by `NetworkPolicy.fromProfiles()` /
+// `.allowAll()` / `.none()` and the custom-rule
 // factories. Native exposes `policyJson(string)`; this shim
 // serializes once.
 // Wrap a class's prototype method so any thrown error gets remapped
@@ -349,11 +354,14 @@ export const MountBuilder = napi.MountBuilder;
 export const PatchBuilder = napi.PatchBuilder;
 export const RegistryConfigBuilder = napi.RegistryConfigBuilder;
 export const ImageBuilder = napi.ImageBuilder;
+export const RootDiskBuilder = napi.RootDiskBuilder;
+export type RootDiskBuilder = NapiRootDiskBuilder;
 export const ExecOptionsBuilder = napi.ExecOptionsBuilder;
 export const InitOptionsBuilder = napi.InitOptionsBuilder;
 export const AttachOptionsBuilder = napi.AttachOptionsBuilder;
 import type {
   NapiNetworkPolicyBuilder,
+  NapiRootDiskBuilder,
   NapiRuleBuilder,
   NapiRuleDestinationBuilder,
 } from "./internal/napi.js";
@@ -515,10 +523,11 @@ export type {
   Action,
   DestinationGroup,
   Direction,
+  NetworkProfile,
   Protocol,
 } from "./policy/types.js";
 
-// `Destination`, `NetworkPolicy`, `PortRange`, `Rule` each merge an
+// `Destination`, `NetworkPolicy`, `PortRange`, and `Rule` each merge an
 // interface (the value shape) with a factory namespace (the constructors)
 // under one name.
 import * as _Factories from "./policy/factories.js";
