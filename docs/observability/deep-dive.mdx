@@ -63,9 +63,9 @@ The collector also emits its own operational series; see
 ## Collector self-observability
 
 `msb-metrics otel` ships its own operational metrics through the same
-OTLP pipeline as the per-sandbox series, so a user can confirm the
-sidecar is actually flowing using the same Prometheus / Grafana / Datadog
-queries the rest of their telemetry runs through:
+OTLP pipeline as the per-sandbox series. You can confirm the sidecar is
+actually flowing using the same Prometheus, Grafana, or Datadog queries
+the rest of your telemetry runs through:
 
 | Suffix | Type | Notes |
 |---|---|---|
