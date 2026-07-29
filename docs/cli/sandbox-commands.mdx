@@ -65,7 +65,7 @@ Common flags:
 
 Use `msb run --help` for the full flag list.
 
-Published ports bind to `127.0.0.1` by default. Use an explicit bind address only when the sandbox service should be reachable beyond localhost. On Windows, opening a published port can trigger a Windows Defender Firewall prompt for `msb.exe`; keep the bind on `127.0.0.1` for local-only development, and allow private/public network access only when you intentionally bind beyond loopback.
+Published ports bind to `127.0.0.1` by default. Use an explicit bind address only when the sandbox service should be reachable beyond localhost. On Windows, opening a published port can trigger a Windows Defender Firewall prompt for `msb.exe`. Keep the bind on `127.0.0.1` for local-only development, and allow private/public network access only when you intentionally bind beyond loopback.
 
 ### Network profiles
 
@@ -247,7 +247,7 @@ msb modify api --cpus 8 --dry-run           # show the plan, apply nothing
 
 `max_cpus` and `max_memory` are boot-time reservations chosen at create time. They default to the effective `cpus`/`memory`, which leaves no headroom — live growth beyond them is impossible without a restart. Reserving capacity costs almost nothing (parked vCPUs and lazily-backed memory), so set them above the initial values at create time if the sandbox may need to grow.
 
-Live resize is not necessarily instant. When an accepted resize has not fully settled, the apply output includes a convergence table with a `STATE` column: `applied` (requested, actual, and enforced values match), `converging` (the guest is still onlining CPUs or plugging memory), `guest-refused` (the guest would not cooperate; the host enforces the new limit anyway), and `failed`. JSON output (`--format json`) carries the same states in `resize_status`.
+Live resize is not necessarily instant. When an accepted resize has not fully settled, the apply output includes a convergence table with a `STATE` column. The values are: `applied` (requested, actual, and enforced values match), `converging` (the guest is still onlining CPUs or plugging memory), `guest-refused` (the guest would not cooperate; the host enforces the new limit anyway), and `failed`. JSON output (`--format json`) carries the same states in `resize_status`.
 
 Env and workdir changes on a running sandbox apply to future execs only — running processes keep their current environment. The plan reports this as a warning.
 
