@@ -31,8 +31,8 @@ use std::time::Duration;
 
 use bytes::Bytes;
 use futures::StreamExt;
-use hickory_net::proto::op::{DnsRequest, Message, ResponseCode};
-use hickory_net::proto::rr::rdata::{A, AAAA};
+use hickory_net::proto::op::{DnsRequest, Message, Query, ResponseCode};
+use hickory_net::proto::rr::rdata::{A, AAAA, CNAME};
 use hickory_net::proto::rr::{RData, Record, RecordType};
 use hickory_net::proto::serialize::binary::{BinDecodable, BinEncodable};
 use hickory_net::xfer::DnsHandle;
@@ -173,7 +173,10 @@ impl DnsForwarder {
         let query_msg = Message::from_bytes(raw_query).ok()?;
         let guest_id = query_msg.metadata.id;
 
-        let question = query_msg.queries.first()?;
+        let question = match single_question(&query_msg) {
+            Ok(question) => question,
+            Err(rcode) => return build_status_response(&query_msg, rcode),
+        };
         let query_type = question.query_type();
         let domain = question.name().to_string();
         let domain = domain.trim_end_matches('.').to_owned();
@@ -266,7 +269,7 @@ impl DnsForwarder {
         // `DomainSuffix` rules can later match when the guest connects
         // to one of them.
         if let Some(family) = family_for_query_type(query_type) {
-            if let Some((addrs, ttl)) = extract_addrs_and_ttl(&response_msg, family) {
+            if let Some((addrs, ttl)) = extract_addrs_and_ttl(&response_msg, family, &domain) {
                 self.shared
                     .cache_resolved_hostname(&domain, family, addrs, ttl);
             } else {
@@ -618,6 +621,15 @@ fn build_status_response(query: &Message, rcode: ResponseCode) -> Option<Bytes> 
     response.to_bytes().ok().map(Bytes::from)
 }
 
+/// Return the single DNS question this forwarder is willing to policy-check.
+fn single_question(query: &Message) -> Result<&Query, ResponseCode> {
+    if query.queries.len() == 1 {
+        return Ok(&query.queries[0]);
+    }
+
+    Err(ResponseCode::FormErr)
+}
+
 /// Map a DNS query type to a [`ResolvedHostnameFamily`] for policy caching.
 fn family_for_query_type(query_type: RecordType) -> Option<ResolvedHostnameFamily> {
     match query_type {
@@ -646,23 +658,64 @@ fn inactive_query_family(
 fn extract_addrs_and_ttl(
     response: &Message,
     family: ResolvedHostnameFamily,
+    query_name: &str,
 ) -> Option<(Vec<IpAddr>, Duration)> {
-    let mut addrs = Vec::new();
+    if response.metadata.response_code != ResponseCode::NoError {
+        return None;
+    }
+
+    let mut eligible_names = HashSet::from([normalize_dns_name(query_name)]);
     let mut ttl: Option<Duration> = None;
 
+    // CNAME answers are allowed only when they start from the queried owner.
+    // Iterate to support ordinary alias chains without trusting unrelated RRs.
+    let mut changed = true;
+    while changed {
+        changed = false;
+        for record in &response.answers {
+            let owner = normalize_dns_name(&record.name.to_string());
+            if !eligible_names.contains(&owner) {
+                continue;
+            }
+
+            if let RData::CNAME(CNAME(canonical)) = &record.data {
+                let record_ttl = dns_record_ttl(record.ttl);
+                ttl = Some(ttl.map_or(record_ttl, |current| current.min(record_ttl)));
+                changed |= eligible_names.insert(normalize_dns_name(&canonical.to_string()));
+            }
+        }
+    }
+
+    let mut addrs = Vec::new();
+
     for record in &response.answers {
+        if !eligible_names.contains(&normalize_dns_name(&record.name.to_string())) {
+            continue;
+        }
+
         let addr = match (family, &record.data) {
             (ResolvedHostnameFamily::Ipv4, RData::A(a)) => IpAddr::V4((*a).into()),
             (ResolvedHostnameFamily::Ipv6, RData::AAAA(aaaa)) => IpAddr::V6((*aaaa).into()),
             _ => continue,
         };
         addrs.push(addr);
-        let record_ttl =
-            Duration::from_secs(u64::from(record.ttl.max(RESOLVED_HOSTNAME_MIN_TTL_SECS)));
+        let record_ttl = dns_record_ttl(record.ttl);
         ttl = Some(ttl.map_or(record_ttl, |current| current.min(record_ttl)));
     }
 
-    ttl.map(|ttl| (addrs, ttl))
+    if addrs.is_empty() {
+        None
+    } else {
+        ttl.map(|ttl| (addrs, ttl))
+    }
+}
+
+fn dns_record_ttl(ttl: u32) -> Duration {
+    Duration::from_secs(u64::from(ttl.max(RESOLVED_HOSTNAME_MIN_TTL_SECS)))
+}
+
+fn normalize_dns_name(name: &str) -> String {
+    name.trim_end_matches('.').to_ascii_lowercase()
 }
 
 /// Case-insensitive match against [`crate::HOST_ALIAS`] with trailing-dot tolerance.
@@ -934,6 +987,14 @@ mod tests {
         assert_eq!(msg.metadata.id, 0x4242, "guest transaction id is preserved");
     }
 
+    fn make_response(query: &Message) -> Message {
+        let mut response = Message::response(query.metadata.id, query.metadata.op_code);
+        response.metadata.response_code = ResponseCode::NoError;
+        response.metadata.recursion_available = true;
+        response.add_query(query.queries[0].clone());
+        response
+    }
+
     #[test]
     fn rebind_filter_allows_private_answers_for_private_profile() {
         let policy = NetworkPolicy::from_profiles([NetworkProfile::Private]);
@@ -1038,6 +1099,27 @@ mod tests {
         let msg = Message::from_bytes(&bytes).expect("parse response");
         assert_eq!(msg.metadata.response_code, ResponseCode::ServFail);
         assert_eq!(msg.answers.len(), 0);
+    }
+
+    #[test]
+    fn single_question_rejects_multi_question_packets() {
+        let mut query = make_query("example.com.", RecordType::A);
+        let mut extra = Query::new();
+        extra.set_name(Name::from_ascii("other.example.").unwrap());
+        extra.set_query_type(RecordType::AAAA);
+        extra.set_query_class(DNSClass::IN);
+        query.add_query(extra);
+
+        assert!(matches!(
+            single_question(&query),
+            Err(ResponseCode::FormErr)
+        ));
+
+        let bytes = build_status_response(&query, ResponseCode::FormErr).expect("built");
+        let msg = Message::from_bytes(&bytes).expect("parse response");
+        assert_eq!(msg.metadata.response_code, ResponseCode::FormErr);
+        assert_eq!(msg.queries.len(), 1);
+        assert_eq!(msg.queries[0].query_type(), RecordType::A);
     }
 
     /// Policy denials synthesize NXDOMAIN (not REFUSED) so stub resolvers
@@ -1145,6 +1227,77 @@ mod tests {
         };
 
         assert_eq!(inactive_query_family(RecordType::MX, gateway), None);
+    }
+
+    #[test]
+    fn extract_addrs_and_ttl_ignores_unrelated_answers() {
+        let query = make_query("example.com.", RecordType::A);
+        let mut response = make_response(&query);
+        response.add_answer(Record::from_rdata(
+            Name::from_ascii("example.com.").unwrap(),
+            30,
+            RData::A(A::from(std::net::Ipv4Addr::new(93, 184, 216, 34))),
+        ));
+        response.add_answer(Record::from_rdata(
+            Name::from_ascii("unrelated.example.").unwrap(),
+            10,
+            RData::A(A::from(std::net::Ipv4Addr::new(198, 51, 100, 7))),
+        ));
+
+        let (addrs, ttl) =
+            extract_addrs_and_ttl(&response, ResolvedHostnameFamily::Ipv4, "example.com").unwrap();
+
+        assert_eq!(
+            addrs,
+            vec![IpAddr::V4(std::net::Ipv4Addr::new(93, 184, 216, 34))]
+        );
+        assert_eq!(ttl, Duration::from_secs(30));
+    }
+
+    #[test]
+    fn extract_addrs_and_ttl_follows_cname_chain() {
+        let query = make_query("example.com.", RecordType::A);
+        let mut response = make_response(&query);
+        response.add_answer(Record::from_rdata(
+            Name::from_ascii("example.com.").unwrap(),
+            20,
+            RData::CNAME(CNAME(Name::from_ascii("cdn.example.net.").unwrap())),
+        ));
+        response.add_answer(Record::from_rdata(
+            Name::from_ascii("cdn.example.net.").unwrap(),
+            40,
+            RData::A(A::from(std::net::Ipv4Addr::new(203, 0, 113, 10))),
+        ));
+        response.add_answer(Record::from_rdata(
+            Name::from_ascii("other.example.net.").unwrap(),
+            1,
+            RData::A(A::from(std::net::Ipv4Addr::new(203, 0, 113, 11))),
+        ));
+
+        let (addrs, ttl) =
+            extract_addrs_and_ttl(&response, ResolvedHostnameFamily::Ipv4, "example.com").unwrap();
+
+        assert_eq!(
+            addrs,
+            vec![IpAddr::V4(std::net::Ipv4Addr::new(203, 0, 113, 10))]
+        );
+        assert_eq!(ttl, Duration::from_secs(20));
+    }
+
+    #[test]
+    fn extract_addrs_and_ttl_ignores_error_responses() {
+        let query = make_query("example.com.", RecordType::A);
+        let mut response = make_response(&query);
+        response.metadata.response_code = ResponseCode::NXDomain;
+        response.add_answer(Record::from_rdata(
+            Name::from_ascii("example.com.").unwrap(),
+            30,
+            RData::A(A::from(std::net::Ipv4Addr::new(93, 184, 216, 34))),
+        ));
+
+        assert!(
+            extract_addrs_and_ttl(&response, ResolvedHostnameFamily::Ipv4, "example.com").is_none()
+        );
     }
 
     fn gateway_set() -> HashSet<IpAddr> {
