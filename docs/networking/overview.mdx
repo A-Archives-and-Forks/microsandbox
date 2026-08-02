@@ -166,6 +166,10 @@ Rules can target groups like `public`, `private`, and `host`, or specific IPs, C
 
 Publish a guest port when a service inside the sandbox should be reachable from the host. Published ports bind to `127.0.0.1` by default.
 
+<Note>
+  **Cloud:** Publishing host ports is not available; there is no local host to publish to.
+</Note>
+
 <CodeGroup>
 ```rust Rust
 let sb = Sandbox::builder("api")

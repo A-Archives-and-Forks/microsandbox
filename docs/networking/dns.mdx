@@ -98,6 +98,10 @@ msb create python --name safe-agent --net-default allow \
 
 ## Pinning nameservers
 
+<Note>
+  **Cloud:** Custom nameservers are not available; cloud sandboxes use platform-managed DNS.
+</Note>
+
 By default the sandbox picks up the host's resolver list automatically:
 
 - **macOS**: reads `State:/Network/Global/DNS` from the system configuration store, with `/etc/resolv.conf` as a fallback when the store isn't available.

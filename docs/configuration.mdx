@@ -141,6 +141,8 @@ let cfg = backend.config();
 let msb = cfg.resolve_msb_path()?;
 ```
 
+`LocalBackend` has two plain constructors alongside the builder. `LocalBackend::lazy()` is synchronous and defers opening (and migrating) the local sandbox database until the first operation; it is what backend resolution uses when no backend is set explicitly. `LocalBackend::new().await?` opens the database up front, so startup fails fast if the database is unusable.
+
 ## `sandbox_defaults`
 
 Defaults applied to every sandbox unless overridden per-sandbox.

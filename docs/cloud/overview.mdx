@@ -1,0 +1,165 @@
+---
+title: "Overview"
+description: "Run the same sandboxes on hosted infrastructure with an API key"
+icon: "cloud"
+---
+
+<Note>
+  microsandbox cloud is in **private beta**, and currently requires you to explicitly [request access](https://dashboard.microsandbox.dev/signup). If you already have access, you can get your API key from the [dashboard](https://dashboard.microsandbox.dev/access/api-keys).
+</Note>
+
+microsandbox cloud runs your sandboxes on hosted infrastructure. The SDKs and the `msb` CLI are the same ones you use locally: the same builders, the same commands, the same code. An API key is the only thing that changes; there is no URL, daemon, or extra configuration.
+
+```bash
+export MSB_API_KEY="msb_..."
+```
+
+## Same code, different backend
+
+Everything from the [quickstart](/getting-started/quickstart) works unchanged. With the API key exported, this creates a sandbox on cloud instead of your machine:
+
+<CodeGroup>
+```rust Rust
+use microsandbox::Sandbox;
+
+let sb = Sandbox::builder("hello")
+    .image("python")
+    .memory(512)
+    .create()
+    .await?;
+
+let output = sb.exec("python", ["-c", "print('Hello from the cloud!')"]).await?;
+println!("{}", output.stdout()?);
+
+sb.stop().await?;
+```
+
+```typescript TypeScript
+import { Sandbox } from "microsandbox";
+
+await using sb = await Sandbox.builder("hello")
+    .image("python")
+    .memory(512)
+    .create();
+
+const output = await sb.exec("python", ["-c", "print('Hello from the cloud!')"]);
+console.log(output.stdout());
+```
+
+```python Python
+from microsandbox import Sandbox
+
+sb = await Sandbox.create("hello", image="python", memory=512)
+
+output = await sb.exec("python", ["-c", "print('Hello from the cloud!')"])
+print(output.stdout_text)
+
+await sb.stop()
+```
+
+```go Go
+sb, err := m.CreateSandbox(ctx, "hello",
+    m.WithImage("python"),
+    m.WithMemory(512),
+)
+if err != nil {
+    return err
+}
+defer sb.Stop(ctx)
+
+output, err := sb.Exec(ctx, "python", []string{"-c", "print('Hello from the cloud!')"})
+fmt.Println(output.Stdout())
+```
+
+```bash CLI
+msb run python -- python3 -c "print('Hello from the cloud!')"
+```
+</CodeGroup>
+
+Hardware virtualization support on your machine is not needed for cloud sandboxes; `msb doctor` checks apply to the local runtime only.
+
+## REST API
+
+The same key also authenticates the [REST API](/api-reference/overview) directly, so you can manage sandboxes, volumes, and usage over plain HTTPS without an SDK. Command execution, file transfer, and SSH ride the sandbox command channel, which the SDKs and CLI handle for you.
+
+## Choosing a backend explicitly
+
+You don't need anything beyond the API key: exporting `MSB_API_KEY` is the whole setup. The overrides below exist for the cases where a process must be explicit; pick at most one.
+
+**Force a backend for a single command or shell** with `MSB_BACKEND`, for example to use the local runtime while a key is exported:
+
+```bash
+MSB_BACKEND=local msb run python -- python -V   # force local
+MSB_BACKEND=cloud msb ls                        # explicit cloud
+```
+
+**Select in code** when the application should decide regardless of its environment. This overrides environment and profile resolution:
+
+<CodeGroup>
+```rust Rust
+use microsandbox::{set_default_backend, CloudBackend, LocalBackend};
+
+// reads MSB_API_KEY
+set_default_backend(CloudBackend::from_env()?);
+
+// or: pass the key explicitly
+set_default_backend(CloudBackend::with_api_key(api_key)?);
+
+// or: force the local runtime
+set_default_backend(LocalBackend::lazy());
+```
+
+```typescript TypeScript
+import { setDefaultBackend } from "microsandbox";
+
+setDefaultBackend({ kind: "cloud", apiKey: process.env.MSB_API_KEY! });
+
+// or: force the local runtime
+setDefaultBackend("local");
+```
+
+```python Python
+import os
+from microsandbox import set_default_backend
+
+set_default_backend("cloud", api_key=os.environ["MSB_API_KEY"])
+
+# or: force the local runtime
+set_default_backend("local")
+```
+
+```go Go
+// The Go SDK selects the backend from the environment: set MSB_API_KEY
+// (or MSB_PROFILE) before the first microsandbox call.
+os.Setenv("MSB_API_KEY", apiKey)
+```
+</CodeGroup>
+
+**Set per-project defaults** with [backend profiles](/configuration#backend-profiles) in `config.json` when you switch between local and cloud regularly. The full resolution order is documented there.
+
+## What to know
+
+- **Compatibility.** Almost the entire SDK and CLI surface behaves identically. The exceptions and their alternatives are listed on the [compatibility page](/cloud/compatibility).
+- **Networking.** Cloud sandboxes get a cloud-assigned hostname. SSH works through the same `msb ssh` and SDK SSH clients you use locally.
+- **Images.** Specify any OCI image on create; the cloud resolves and pulls it for you. Local image-cache commands don't apply.
+- **Keys and billing.** API keys, usage, and invoices live in the [dashboard](https://dashboard.microsandbox.dev).
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Cloud compatibility" icon="table-list" href="/cloud/compatibility">
+    What works today, what's limited, and what to use instead.
+  </Card>
+
+  <Card title="API reference" icon="brackets-curly" href="/api-reference/overview">
+    The REST API behind the SDKs, authenticated with your API key.
+  </Card>
+
+  <Card title="Backend profiles" icon="gear" href="/configuration#backend-profiles">
+    Switch between local and cloud from one config file.
+  </Card>
+
+  <Card title="Quickstart" icon="bolt" href="/getting-started/quickstart">
+    New to microsandbox? Start here; everything carries over.
+  </Card>
+</CardGroup>

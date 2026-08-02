@@ -4,7 +4,7 @@ description: What sandboxes are and how to configure them
 icon: "circle-info"
 ---
 
-A sandbox is a local microVM with its own Linux kernel, filesystem, and network stack. Your application or the `msb` CLI starts it as a child process, then talks to the guest agent to run commands, move files, and control lifecycle.
+A sandbox is a microVM with its own Linux kernel, filesystem, and network stack. Your application or the `msb` CLI starts it as a child process on your machine or on [microsandbox cloud](/cloud/overview), then talks to the guest agent to run commands, move files, and control lifecycle.
 
 The security boundary is hardware virtualization, not Linux namespaces. That makes sandboxes a good fit for untrusted workloads: user-submitted code, AI agent actions, plugins, dependency installs, CI jobs, scrapers, and tools that should not inherit the host process's full privileges.
 
@@ -51,7 +51,7 @@ let sb = Sandbox::builder("worker")
     .cpus(2)
     .env("DEBUG", "true")
     .label("user.id", "alice")
-    .volume("/app/src", |v| v.bind("./src").readonly())
+    .volume("/tmp/scratch", |v| v.tmpfs().size(100))
     .create()
     .await?;
 ```
@@ -63,7 +63,7 @@ await using sb = await Sandbox.builder("worker")
     .cpus(2)
     .env("DEBUG", "true")
     .label("user.id", "alice")
-    .volume("/app/src", (m) => m.bind("./src").readonly())
+    .volume("/tmp/scratch", (m) => m.tmpfs().size(100))
     .create();
 ```
 
@@ -75,7 +75,7 @@ sb = await Sandbox.create(
     cpus=2,
     env={"DEBUG": "true"},
     labels={"user.id": "alice"},
-    volumes={"/app/src": Volume.bind("./src", readonly=True)},
+    volumes={"/tmp/scratch": Volume.tmpfs(size_mib=100)},
 )
 ```
 
@@ -87,7 +87,7 @@ sb, err := m.CreateSandbox(ctx, "worker",
     m.WithEnv(map[string]string{"DEBUG": "true"}),
     m.WithLabels(map[string]string{"user.id": "alice"}),
     m.WithMounts(map[string]m.MountConfig{
-        "/app/src": m.Mount.Bind("./src", m.MountOptions{Readonly: true}),
+        "/tmp/scratch": m.Mount.Tmpfs(m.TmpfsOptions{SizeMiB: 100}),
     }),
 )
 ```
@@ -98,7 +98,7 @@ msb create python --name worker \
   -m 1G \
   -e DEBUG=true \
   --label user.id=alice \
-  -v ./src:/app/src:ro
+  --tmpfs /tmp/scratch:100
 ```
 </CodeGroup>
 

@@ -309,7 +309,7 @@ fmt.Println(report.LayersRemoved, "layers removed")
 func (imageFactory) Load(ctx context.Context, inputPath string, tags ...string) ([]*ImageHandle, error)
 ```
 
-Import images from a local archive — a `docker save` tarball or an OCI Image Layout archive — into the cache, so locally built images can be used without a registry. Variadic `tags` apply extra references to the first image in the archive.
+Import images from a local archive (a `docker save` tarball or an OCI Image Layout archive) into the cache, so locally built images can be used without a registry. Variadic `tags` apply extra references to the first image in the archive.
 
 <p className="msb-label">Parameters</p>
 

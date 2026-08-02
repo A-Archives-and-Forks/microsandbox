@@ -313,7 +313,7 @@ List indexed snapshots from the local DB cache.
 static listDir(dir: string): Promise<Snapshot[]>
 ```
 
-Walk a directory and parse each subdirectory's manifest. Does not touch the index — useful for inspecting external snapshot collections that were never loaded. Skips entries that don't look like snapshot artifacts.
+Walk a directory and parse each subdirectory's manifest. Does not touch the index, which makes it useful for inspecting external snapshot collections that were never loaded. Skips entries that don't look like snapshot artifacts.
 
 <p className="msb-label">Parameters</p>
 
@@ -722,7 +722,7 @@ Compute and record a content-integrity hash of the upper layer at creation time,
 resumable(): this
 ```
 
-Request a `"resumable"` snapshot (disk plus VM state). Accepted by the builder, but [`.create()`](#create) currently returns an `Unsupported` error — resumable snapshots have not landed yet.
+Request a `"resumable"` snapshot (disk plus VM state). Accepted by the builder, but [`.create()`](#create) currently returns an `Unsupported` error; resumable snapshots have not landed yet.
 
 ---
 

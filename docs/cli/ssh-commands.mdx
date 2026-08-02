@@ -45,6 +45,10 @@ The default authorization file is `<MSB_HOME>/ssh/authorized_keys`, or `~/.micro
 
 Serve a sandbox over SSH for external OpenSSH, SFTP, local TCP forwarding, dynamic TCP forwarding, or `ProxyCommand` clients.
 
+<Note>
+  **Cloud:** Serving a local SSH listener is not available; use `msb ssh` native sessions instead.
+</Note>
+
 ```bash
 msb ssh serve devbox
 msb ssh serve devbox --host 127.0.0.1 --port 2222

@@ -34,6 +34,14 @@
             ]
           },
           {
+            "group": "Cloud",
+            "icon": "cloud",
+            "pages": [
+              "cloud/overview",
+              "cloud/compatibility"
+            ]
+          },
+          {
             "group": "Sandboxes",
             "icon": "box",
             "pages": [
@@ -185,6 +193,106 @@
             ]
           },
           {
+            "group": "API Reference",
+            "icon": "brackets-curly",
+            "pages": [
+              "api-reference/overview",
+              {
+                "group": "Sandboxes",
+                "icon": "cube",
+                "openapi": {
+                  "source": "/api-reference/openapi.json",
+                  "directory": "api-reference/endpoints"
+                },
+                "pages": [
+                  "POST /v1/sandboxes",
+                  "GET /v1/sandboxes",
+                  "GET /v1/sandboxes/{sandbox_id}",
+                  "GET /v1/sandboxes/by-name/{name}",
+                  "POST /v1/sandboxes/{sandbox_id}/start",
+                  "POST /v1/sandboxes/by-name/{name}/start",
+                  "POST /v1/sandboxes/{sandbox_id}/stop",
+                  "POST /v1/sandboxes/by-name/{name}/stop",
+                  "PATCH /v1/sandboxes/{sandbox_id}",
+                  "DELETE /v1/sandboxes/{sandbox_id}",
+                  "DELETE /v1/sandboxes/by-name/{name}"
+                ]
+              },
+              {
+                "group": "Volumes",
+                "icon": "hard-drive",
+                "openapi": {
+                  "source": "/api-reference/openapi.json",
+                  "directory": "api-reference/endpoints"
+                },
+                "pages": [
+                  "POST /v1/volumes",
+                  "GET /v1/volumes",
+                  "PATCH /v1/volumes/{id}",
+                  "DELETE /v1/volumes/{id}"
+                ]
+              },
+              {
+                "group": "Quotas",
+                "icon": "gauge-high",
+                "openapi": {
+                  "source": "/api-reference/openapi.json",
+                  "directory": "api-reference/endpoints"
+                },
+                "pages": [
+                  "GET /v1/quotas"
+                ]
+              },
+              {
+                "group": "Usage",
+                "icon": "chart-line",
+                "openapi": {
+                  "source": "/api-reference/openapi.json",
+                  "directory": "api-reference/endpoints"
+                },
+                "pages": [
+                  "GET /v1/billing/usage",
+                  "GET /v1/billing/usage/sandbox",
+                  "GET /v1/billing/usage/storage"
+                ]
+              },
+              {
+                "group": "Audit events",
+                "icon": "clipboard-list",
+                "openapi": {
+                  "source": "/api-reference/openapi.json",
+                  "directory": "api-reference/endpoints"
+                },
+                "pages": [
+                  "GET /v1/events",
+                  "GET /v1/events/{event_id}"
+                ]
+              },
+              {
+                "group": "Organization",
+                "icon": "building",
+                "openapi": {
+                  "source": "/api-reference/openapi.json",
+                  "directory": "api-reference/endpoints"
+                },
+                "pages": [
+                  "GET /v1/me/org"
+                ]
+              },
+              {
+                "group": "Members",
+                "icon": "users",
+                "openapi": {
+                  "source": "/api-reference/openapi.json",
+                  "directory": "api-reference/endpoints"
+                },
+                "pages": [
+                  "GET /v1/members"
+                ]
+              }
+            ]
+          },
+          {
             "group": "Configuration",
             "icon": "gear",
             "pages": [
@@ -269,7 +377,7 @@
   "appearance": {
     "default": "system"
   },
-  "description": "Easy, fast, local microVMs for untrusted workloads",
+  "description": "Easy, fast microVMs for untrusted workloads, on your machine or in the cloud",
   "footer": {
     "socials": {
       "github": "https://github.com/superradcompany/microsandbox",

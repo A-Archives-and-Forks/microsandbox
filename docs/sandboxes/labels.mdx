@@ -63,6 +63,10 @@ The OCI image's own labels (`LABEL` instructions, `org.opencontainers.image.*`, 
 
 Add, change, or remove labels without recreating the sandbox:
 
+<Note>
+  **Cloud:** `modify` is not yet available; set labels at create time.
+</Note>
+
 <CodeGroup>
 ```rust Rust
 sb.modify().label("tier", "web").remove_label("stale").apply().await?;
@@ -125,7 +129,7 @@ msb restart --label app=engine     # restart every match
 msb rm --force --label app=engine  # remove every match
 ```
 
-It works the same on `ps`, `ls`, `start`, `stop`, `restart`, `ping`, `touch`, and `rm`.
+It works the same on `ps`, `ls`, `start`, `stop`, `restart`, `ping`, `touch`, and `rm`. On cloud, `ping` and `touch` are not yet available.
 
 ## Attribute metrics
 

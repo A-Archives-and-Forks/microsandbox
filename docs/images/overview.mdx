@@ -111,6 +111,10 @@ sb, err := m.CreateSandbox(ctx, "worker",
 
 By default, microsandbox connects to registries over HTTPS using system CA roots. You can customize this per-registry in `~/.microsandbox/config.json`.
 
+<Note>
+  **Cloud:** Plain-HTTP registries and custom CA certificates are not supported; cloud pulls images from HTTPS registries only.
+</Note>
+
 ### Plain HTTP registries
 
 Local registries often run without TLS. Mark them as insecure to connect over plain HTTP:
@@ -202,6 +206,10 @@ Layers are content-addressable and deduplicated. If `python:3.12` and `python:3.
 <Tip>
   Use `msb pull` from the CLI to pre-pull images before creating sandboxes. This avoids blocking on a download during `Sandbox.create`.
 </Tip>
+
+<Note>
+  **Cloud:** Image-cache commands are local-only. Specify an OCI image when creating the sandbox; cloud resolves and pulls it for you.
+</Note>
 
 Use `msb image prune` to remove cached images that are not used by any sandbox or indexed snapshot and reclaim dangling image artifacts. Prune keeps images referenced by existing sandboxes or snapshots. It cleans up image metadata, unreachable manifests, orphaned layers, layer EROFS artifacts, fsmeta EROFS artifacts, and VMDK descriptor artifacts.
 

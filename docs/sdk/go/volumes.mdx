@@ -889,7 +889,7 @@ Tuning struct for [`Mount.Bind`](#mount-bind), [`Mount.Named`](#mount-named), an
 | `Noexec` | `bool` | Prevent direct execution from the mount |
 | `Nosuid` | `bool` | Ignore setuid and setgid privilege elevation from files on the mount |
 | `Nodev` | `bool` | Ignore device files on the mount |
-| `QuotaMiB` | `uint32` | Guest-write quota in MiB, bounding growth beyond the host directory's existing contents; zero keeps the protective default (bind mounts only — named volumes use [`NamedVolumeOptions.QuotaMiB`](#namedvolumeoptions)) |
+| `QuotaMiB` | `uint32` | Guest-write quota in MiB, bounding growth beyond the host directory's existing contents; zero keeps the protective default (bind mounts only; named volumes use [`NamedVolumeOptions.QuotaMiB`](#namedvolumeoptions)) |
 | `StatVirtualization` | `StatVirtualization` | Per-mount stat-virtualization policy (virtiofs only) |
 | `HostPermissions` | `HostPermissions` | Per-mount host-permission propagation policy (virtiofs only) |
 

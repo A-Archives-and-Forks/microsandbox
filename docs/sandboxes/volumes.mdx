@@ -4,9 +4,13 @@ description: Persist and share data across sandboxes
 icon: "hard-drive"
 ---
 
-Volumes give a sandbox direct filesystem access to host-side storage or in-memory filesystems. They're useful for persisting data across restarts, sharing data between sandboxes, or mounting host data into the guest. They're also significantly faster than the [filesystem API](/sandboxes/filesystem) (which transfers files individually), so for anything beyond ad-hoc reads and writes, volumes are the way to go.
+Volumes give a sandbox direct filesystem access to persistent storage or in-memory filesystems. They're useful for persisting data across restarts, sharing data between sandboxes, or mounting host data into the guest. They're also significantly faster than the [filesystem API](/sandboxes/filesystem) (which transfers files individually), so for anything beyond ad-hoc reads and writes, volumes are the way to go.
 
-microsandbox supports four types of mounts: bind mounts, named volumes, tmpfs, and disk-image volumes.
+microsandbox supports four types of mounts: bind mounts, named volumes, tmpfs, and disk-image volumes. All four work on both backends.
+
+<Note>
+  **Cloud:** Volumes run on fast block storage managed by the platform. Every organization automatically gets a **host volume**: think of it as the disk of the one computer all your org's sandboxes run on. It can never be deleted, and the host paths in bind and disk-image mounts resolve against it; like host paths locally, nothing on it is mounted into a sandbox unless you ask. Named volumes are the same storage under a name you choose.
+</Note>
 
 Mounts use normal Linux behavior by default: writable, executable, suid-enabled, and device-enabled. Adjust with:
 
@@ -32,6 +36,10 @@ CLI mount flags use `SOURCE:DEST[:OPTIONS]`. The `:` before `OPTIONS` starts the
 ## Bind mounts
 
 Mount a directory from the host directly into the sandbox. Changes inside the sandbox are reflected on the host, and vice versa.
+
+<Note>
+  **Cloud:** The host path resolves against your organization's host volume, not the computer running the SDK or CLI.
+</Note>
 
 <CodeGroup>
 ```rust Rust
@@ -221,6 +229,10 @@ Mount the same directory-backed named volume into multiple sandboxes when they n
 
 Directory-backed named volumes are also accessible from the host without a running sandbox, so you can pre-populate a cache or inspect output after the sandbox stops. Disk-backed named volumes store guest data inside `disk.raw`; host filesystem helpers operate on the managed volume directory, not the filesystem inside the disk image.
 
+<Note>
+  **Cloud:** Host-side access to an unmounted volume is not available. Mount the volume into a sandbox and use the [sandbox filesystem](/sandboxes/filesystem) instead.
+</Note>
+
 ### Manage volumes
 
 <CodeGroup>
@@ -254,6 +266,10 @@ msb volume rm old-cache
 ## Disk-image volumes
 
 Disk-image volumes attach a host disk image as a virtio-blk device and mount its inner filesystem at a guest path. Use them when you want persistent state isolated from ordinary host filesystem metadata, or when distributing a prebuilt filesystem image. The disk format defaults from the file extension (`.qcow2`, `.raw`, `.vmdk`; otherwise raw), and the inner filesystem type is auto-detected unless you set `fstype`.
+
+<Note>
+  **Cloud:** The image path resolves against your organization's host volume, not your local filesystem.
+</Note>
 
 <CodeGroup>
 ```rust Rust
