@@ -505,6 +505,8 @@ Functional options passed to [`CreateVolume`](#createvolume), plus the [`Mount`]
 
 #### <span className="msb-recv"></span><span className="msb-hn">WithVolumeKind()</span>
 
+<Tooltip tip="Disk-kind volumes are not available on microsandbox cloud; use a directory-backed named volume."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```go
 func WithVolumeKind(kind VolumeKind) VolumeOption
 ```
@@ -521,6 +523,8 @@ Select the volume kind. Valid values are [`VolumeKindDir`](#volumekind) (default
 </div>
 
 #### <span className="msb-recv"></span><span className="msb-hn">WithVolumeSize()</span>
+
+<Tooltip tip="Disk-kind volumes are not available on microsandbox cloud; use a directory-backed named volume."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```go
 func WithVolumeSize(mebibytes uint32) VolumeOption
@@ -703,6 +707,8 @@ Mount an ephemeral in-memory filesystem. Contents are discarded when the sandbox
 </div>
 
 #### <span className="msb-recv">Mount.</span><span className="msb-hn">Disk()</span>
+
+<Tooltip tip="On microsandbox cloud, the disk-image path resolves against your organization's host volume, not the computer running the SDK or CLI."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```go
 func (mountFactory) Disk(hostPath string, opts DiskOptions) MountConfig

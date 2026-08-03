@@ -440,6 +440,8 @@ Set the policy. Accepts a [`NetworkPolicy`](#networkpolicy-2) literal or factory
 
 #### <span className="msb-recv">.</span><span className="msb-hn">port()</span>
 
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 port(host: number, guest: number): this
 ```
@@ -460,6 +462,8 @@ Publish a TCP port from the guest to the host. The default host bind address is 
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">portBind()</span>
+
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 portBind(bind: string, host: number, guest: number): this
@@ -486,6 +490,8 @@ Publish a TCP port on a specific host bind address, such as `0.0.0.0`.
 
 #### <span className="msb-recv">.</span><span className="msb-hn">portUdp()</span>
 
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 portUdp(host: number, guest: number): this
 ```
@@ -506,6 +512,8 @@ Publish a UDP port from the guest to the host. The default host bind address is 
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">portUdpBind()</span>
+
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 portUdpBind(bind: string, host: number, guest: number): this

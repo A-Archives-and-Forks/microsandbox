@@ -225,6 +225,8 @@ Create a directory-backed volume. This is the default, so calling it is only nee
 
 #### <span className="msb-recv">.</span><span className="msb-hn">disk()</span>
 
+<Tooltip tip="Disk-kind volumes are not available on microsandbox cloud; use a directory-backed named volume."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 disk(): this
 ```
@@ -244,6 +246,8 @@ Create a raw ext4 disk-backed volume. Pair with [`size()`](#size) to set the cap
 
 #### <span className="msb-recv">.</span><span className="msb-hn">size()</span>
 
+<Tooltip tip="Disk-kind volumes are not available on microsandbox cloud; use a directory-backed named volume."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 size(mib: number): this
 ```
@@ -260,6 +264,8 @@ Set the disk capacity in MiB. Required after [`disk()`](#disk).
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">quota()</span>
+
+<Tooltip tip="On microsandbox cloud, quota sets a storage cap and must be a whole number of GiB."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 quota(mib: number): this

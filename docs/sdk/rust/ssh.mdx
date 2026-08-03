@@ -218,6 +218,8 @@ Alias for [`server`](#ssh-server).
 
 #### <span className="msb-recv">ssh.</span><span className="msb-hn">server_with()</span>
 
+<Tooltip tip="On microsandbox cloud, serving works when you supply explicit host-key and authorized-key material; the convenience defaults are local-only."><span className="msb-badge-limited">Limited on cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 async fn server_with(
     &self,
@@ -257,6 +259,8 @@ Prepare a server endpoint with custom host-key, authorization, guest-user, or SF
 </div>
 
 #### <span className="msb-recv">ssh.</span><span className="msb-hn">prepare_server_with()</span>
+
+<Tooltip tip="On microsandbox cloud, serving works when you supply explicit host-key and authorized-key material; the convenience defaults are local-only."><span className="msb-badge-limited">Limited on cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 async fn prepare_server_with(

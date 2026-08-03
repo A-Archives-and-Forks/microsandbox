@@ -736,6 +736,8 @@ Set the network access policy. Pass a profile-composed or builder-constructed [`
 
 #### <span className="msb-recv">.</span><span className="msb-hn">port()</span>
 
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 <a id="nb-port"></a>
 
 ```rust
@@ -759,6 +761,8 @@ Publish a TCP port from the sandbox to the host. The default host bind address i
 
 #### <span className="msb-recv">.</span><span className="msb-hn">port_udp()</span>
 
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 fn port_udp(self, host_port: u16, guest_port: u16) -> Self
 ```
@@ -766,6 +770,8 @@ fn port_udp(self, host_port: u16, guest_port: u16) -> Self
 Publish a UDP port. The default host bind address is `127.0.0.1`.
 
 #### <span className="msb-recv">.</span><span className="msb-hn">port_bind()</span>
+
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 fn port_bind(self, host_bind: IpAddr, host_port: u16, guest_port: u16) -> Self
@@ -791,6 +797,8 @@ Publish a TCP port on a specific host bind address, such as `0.0.0.0`.
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">port_udp_bind()</span>
+
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 fn port_udp_bind(self, host_bind: IpAddr, host_port: u16, guest_port: u16) -> Self

@@ -625,6 +625,8 @@ Get the sandbox name.
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">owns_lifecycle()</span>
 
+<Tooltip tip="On microsandbox cloud this is false; the cloud worker owns the sandbox process, not your handle."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 fn owns_lifecycle(&self) -> bool
 ```
@@ -793,6 +795,8 @@ Set the number of virtual CPUs. This is a limit, not a reservation. Default: `1`
 
 #### <span className="msb-recv">.</span><span className="msb-hn">max_cpus()</span>
 
+<Tooltip tip="On microsandbox cloud these ceilings are not carried; the maximum is pinned to the initial value. Recreate the sandbox to resize."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 fn max_cpus(self, count: u8) -> Self
 ```
@@ -932,6 +936,8 @@ Set an environment variable visible to all commands. Can be called multiple time
 
 #### <span className="msb-recv">.</span><span className="msb-hn">hostname()</span>
 
+<Tooltip tip="On microsandbox cloud, the hostname is assigned by the platform; a value set here is ignored."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 fn hostname(self, hostname: impl Into<String>) -> Self
 ```
@@ -1036,6 +1042,8 @@ Like [`init`](#init), but with a closure-builder for argv and env vars. Mirrors 
 
 #### <span className="msb-recv">.</span><span className="msb-hn">image()</span>
 
+<Tooltip tip="On microsandbox cloud, only OCI image references are accepted; host-directory and disk-image root filesystems are local-only."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 fn image(self, image: impl IntoImage) -> Self
 ```
@@ -1052,6 +1060,8 @@ Set the root filesystem source. Accepts OCI image names, local directory paths, 
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">image_with()</span>
+
+<Tooltip tip="On microsandbox cloud, only OCI image references are accepted; host-directory and disk-image root filesystems are local-only."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 fn image_with(self, f: impl FnOnce(ImageBuilder) -> ImageBuilder) -> Self
@@ -1133,6 +1143,8 @@ Set the guest memory size. Physical pages are only allocated as the guest touche
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">max_memory()</span>
+
+<Tooltip tip="On microsandbox cloud these ceilings are not carried; the maximum is pinned to the initial value. Recreate the sandbox to resize."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 fn max_memory(self, size: impl Into<Mebibytes>) -> Self
@@ -1301,6 +1313,8 @@ Control when the OCI image is pulled from the registry.
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">registry()</span>
+
+<Tooltip tip="On microsandbox cloud, plain-HTTP and custom-CA registry options are not available; credential auth still works."><span className="msb-badge-limited">Limited on cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 fn registry(self, f: impl FnOnce(RegistryConfigBuilder) -> RegistryConfigBuilder) -> Self
@@ -1510,6 +1524,8 @@ Append `content` to an existing file at `path`. If the file lives in a lower ima
 
 #### <span className="msb-recv">.</span><span className="msb-hn">copy_dir()</span>
 
+<Tooltip tip="On microsandbox cloud, host sources resolve against your organization's host volume, not the computer running the SDK or CLI."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 fn copy_dir(self, src: impl Into<PathBuf>, dst: impl Into<String>, replace: bool) -> Self
 ```
@@ -1534,6 +1550,8 @@ Recursively copy a host directory at `src` into the guest rootfs at `dst`.
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">copy_file()</span>
+
+<Tooltip tip="On microsandbox cloud, host sources resolve against your organization's host volume, not the computer running the SDK or CLI."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 fn copy_file(
@@ -1604,6 +1622,8 @@ Write raw bytes at `path`.
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">mkdir()</span>
+
+<Tooltip tip="On microsandbox cloud, host sources resolve against your organization's host volume, not the computer running the SDK or CLI."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 fn mkdir(self, path: impl Into<String>, mode: Option<u32>) -> Self
@@ -1746,6 +1766,8 @@ Set the desired effective vCPU count. Applies live to a running sandbox when the
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">max_cpus()</span>
+
+<Tooltip tip="On microsandbox cloud these ceilings are not carried; the maximum is pinned to the initial value. Recreate the sandbox to resize."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 fn max_cpus(self, max_cpus: u8) -> Self
@@ -1905,6 +1927,8 @@ Set the desired effective guest memory in MiB. Same as [`memory()`](#memory-2) w
 
 #### <span className="msb-recv">.</span><span className="msb-hn">max_memory()</span>
 
+<Tooltip tip="On microsandbox cloud these ceilings are not carried; the maximum is pinned to the initial value. Recreate the sandbox to resize."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 fn max_memory(self, size: impl Into<Mebibytes>) -> Self
 ```
@@ -1921,6 +1945,8 @@ Set the desired boot-time maximum hotpluggable memory. Capacity is fixed at boot
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">max_memory_mib()</span>
+
+<Tooltip tip="On microsandbox cloud these ceilings are not carried; the maximum is pinned to the initial value. Recreate the sandbox to resize."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 fn max_memory_mib(self, max_memory_mib: u32) -> Self

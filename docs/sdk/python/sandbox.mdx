@@ -319,6 +319,8 @@ The sandbox name. This is an async method; call `await sb.name()`.
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">owns_lifecycle</span>
 
+<Tooltip tip="On microsandbox cloud this is false; the cloud worker owns the sandbox process, not your handle."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```python
 @property
 async def owns_lifecycle(self) -> bool
@@ -769,6 +771,8 @@ The default sources are `"stdout"`, `"stderr"`, and `"output"` (PTY-merged). Pas
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">log_stream()</span>
 
+<Tooltip tip="On microsandbox cloud, log streaming is follow-only; set follow. Bounded, non-follow reads are not available."><span className="msb-badge-limited">Limited on cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```python
 async def log_stream(
     self,
@@ -1045,6 +1049,8 @@ Append `content` to an existing file at `path`. If the file lives in a lower ima
 
 #### <span className="msb-recv">Patch.</span><span className="msb-hn">mkdir()</span>
 
+<Tooltip tip="On microsandbox cloud, host sources resolve against your organization's host volume, not the computer running the SDK or CLI."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```python
 @staticmethod
 def mkdir(path: str, *, mode: int | None = None) -> PatchConfig
@@ -1085,6 +1091,8 @@ Delete a file or directory at `path`. Idempotent: a no-op if the path doesn't ex
 
 #### <span className="msb-recv">Patch.</span><span className="msb-hn">copy_file()</span>
 
+<Tooltip tip="On microsandbox cloud, host sources resolve against your organization's host volume, not the computer running the SDK or CLI."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```python
 @staticmethod
 def copy_file(src: str, dst: str, *, mode: int | None = None, replace: bool = False) -> PatchConfig
@@ -1114,6 +1122,8 @@ Copy a single host file at `src` into the guest rootfs at `dst`.
 </div>
 
 #### <span className="msb-recv">Patch.</span><span className="msb-hn">copy_dir()</span>
+
+<Tooltip tip="On microsandbox cloud, host sources resolve against your organization's host volume, not the computer running the SDK or CLI."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```python
 @staticmethod

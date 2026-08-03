@@ -443,6 +443,8 @@ The default sources are `"stdout"`, `"stderr"`, and `"output"` (PTY-merged). Pas
 
 #### <span className="msb-recv">sandbox.</span><span className="msb-hn">logStream()</span>
 
+<Tooltip tip="On microsandbox cloud, log streaming is follow-only; set follow. Bounded, non-follow reads are not available."><span className="msb-badge-limited">Limited on cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 logStream(opts?: LogStreamOptions): Promise<LogStream>
 ```
@@ -795,6 +797,8 @@ Block until the sandbox is observed in a terminal non-running state, without tri
 
 #### <span className="msb-recv">sandbox.</span><span className="msb-hn">[Symbol.asyncDispose]()</span>
 
+<Tooltip tip="On microsandbox cloud this does not stop the sandbox; the cloud handle does not own the host process, so call stop() or remove() explicitly."><span className="msb-badge-limited">Limited on cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 [Symbol.asyncDispose](): Promise<void>
 ```
@@ -852,6 +856,8 @@ Set the number of virtual CPUs. This is a limit, not a reservation.
 
 #### <span className="msb-recv">.</span><span className="msb-hn">maxCpus()</span>
 
+<Tooltip tip="On microsandbox cloud these ceilings are not carried; the maximum is pinned to the initial value. Recreate the sandbox to resize."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 maxCpus(n: number): this
 ```
@@ -897,6 +903,8 @@ Build and boot the sandbox. By default the sandbox is attached - it stops when t
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">createWithPullProgress()</span>
+
+<Tooltip tip="On microsandbox cloud, per-layer pull progress is not reported; creation still completes."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 createWithPullProgress(): Promise<PullProgressCreate>
@@ -949,6 +957,8 @@ Create in detached/background mode when `true`. A detached sandbox survives afte
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">disableMetricsSample()</span>
+
+<Tooltip tip="Metrics sampling does not apply on microsandbox cloud, where resource metrics are unavailable."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 disableMetricsSample(): this
@@ -1055,6 +1065,8 @@ Boot from a previously captured snapshot instead of a fresh image. The image ref
 
 #### <span className="msb-recv">.</span><span className="msb-hn">hostname()</span>
 
+<Tooltip tip="On microsandbox cloud, the hostname is assigned by the platform; a value set here is ignored."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 hostname(name: string): this
 ```
@@ -1106,6 +1118,8 @@ Auto-drain the sandbox after this many seconds of inactivity (no active exec ses
 
 #### <span className="msb-recv">.</span><span className="msb-hn">image()</span>
 
+<Tooltip tip="On microsandbox cloud, only OCI image references are accepted; host-directory and disk-image root filesystems are local-only."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 image(src: string): this
 ```
@@ -1122,6 +1136,8 @@ Set the root filesystem source. Accepts OCI image names (`"alpine"`), local dire
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">imageWith()</span>
+
+<Tooltip tip="On microsandbox cloud, only OCI image references are accepted; host-directory and disk-image root filesystems are local-only."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 imageWith(configure: (b: ImageBuilder) => ImageBuilder): this
@@ -1304,6 +1320,8 @@ Set the guest memory size in MiB. Physical pages are only allocated as the guest
 
 #### <span className="msb-recv">.</span><span className="msb-hn">maxMemory()</span>
 
+<Tooltip tip="On microsandbox cloud these ceilings are not carried; the maximum is pinned to the initial value. Recreate the sandbox to resize."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 maxMemory(mib: number): this
 ```
@@ -1320,6 +1338,8 @@ Set the boot-time maximum hotpluggable guest memory in MiB. This reserves the en
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">metricsSampleIntervalMs()</span>
+
+<Tooltip tip="Metrics sampling does not apply on microsandbox cloud, where resource metrics are unavailable."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 metricsSampleIntervalMs(ms: number): this
@@ -1507,6 +1527,8 @@ quietLogs(): this
 Suppress sandbox process log output.
 
 #### <span className="msb-recv">.</span><span className="msb-hn">registry()</span>
+
+<Tooltip tip="On microsandbox cloud, plain-HTTP and custom-CA registry options are not available; credential auth still works."><span className="msb-badge-limited">Limited on cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 registry(configure: (b: RegistryBuilder) => RegistryBuilder): this
@@ -1805,6 +1827,8 @@ Append `content` to an existing file at `path`. If the file lives in a lower ima
 
 #### <span className="msb-recv">.</span><span className="msb-hn">copyDir()</span>
 
+<Tooltip tip="On microsandbox cloud, host sources resolve against your organization's host volume, not the computer running the SDK or CLI."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 copyDir(src: string, dst: string, opts?: { replace?: boolean }): this
 ```
@@ -1829,6 +1853,8 @@ Recursively copy a host directory at `src` into the guest rootfs at `dst`.
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">copyFile()</span>
+
+<Tooltip tip="On microsandbox cloud, host sources resolve against your organization's host volume, not the computer running the SDK or CLI."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 copyFile(src: string, dst: string, opts?: { mode?: number; replace?: boolean }): this
@@ -1887,6 +1913,8 @@ Write raw bytes at `path`.
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">mkdir()</span>
+
+<Tooltip tip="On microsandbox cloud, host sources resolve against your organization's host volume, not the computer running the SDK or CLI."><span className="msb-badge-note">On cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 mkdir(path: string, opts?: { mode?: number }): this
