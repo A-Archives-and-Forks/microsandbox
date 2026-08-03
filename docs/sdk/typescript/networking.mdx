@@ -440,6 +440,8 @@ Set the policy. Accepts a [`NetworkPolicy`](#networkpolicy-2) literal or factory
 
 #### <span className="msb-recv">.</span><span className="msb-hn">port()</span>
 
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 port(host: number, guest: number): this
 ```
@@ -460,6 +462,8 @@ Publish a TCP port from the guest to the host. The default host bind address is 
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">portBind()</span>
+
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 portBind(bind: string, host: number, guest: number): this
@@ -486,6 +490,8 @@ Publish a TCP port on a specific host bind address, such as `0.0.0.0`.
 
 #### <span className="msb-recv">.</span><span className="msb-hn">portUdp()</span>
 
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 portUdp(host: number, guest: number): this
 ```
@@ -506,6 +512,8 @@ Publish a UDP port from the guest to the host. The default host bind address is 
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">portUdpBind()</span>
+
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 portUdpBind(bind: string, host: number, guest: number): this
@@ -532,6 +540,8 @@ Publish a UDP port on a specific host bind address.
 
 #### <span className="msb-recv">.</span><span className="msb-hn">dns()</span>
 
+<Tooltip tip="Custom nameservers are not available on microsandbox cloud; cloud uses platform-managed DNS."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 dns(configure: (b: DnsBuilder) => DnsBuilder): this
 ```
@@ -557,6 +567,8 @@ Configure DNS interception. See [`DnsBuilder`](#dnsbuilder).
 
 #### <span className="msb-recv">.</span><span className="msb-hn">tls()</span>
 
+<Tooltip tip="TLS interception and host-CA trust are not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 tls(configure: (b: TlsBuilder) => TlsBuilder): this
 ```
@@ -573,6 +585,8 @@ Configure TLS interception. See [`TlsBuilder`](#tlsbuilder).
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">trustHostCAs()</span>
+
+<Tooltip tip="TLS interception and host-CA trust are not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 trustHostCAs(enabled: boolean): this
@@ -608,6 +622,8 @@ Limit the maximum number of concurrent network connections from the sandbox.
 
 #### <span className="msb-recv">.</span><span className="msb-hn">ipv4Pool()</span>
 
+<Tooltip tip="Interface and IP-pool overrides are not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 ipv4Pool(pool: string): this
 ```
@@ -625,6 +641,8 @@ Set the IPv4 pool used to derive per-sandbox `/30` guest subnets. Defaults to `1
 
 #### <span className="msb-recv">.</span><span className="msb-hn">ipv6Pool()</span>
 
+<Tooltip tip="Interface and IP-pool overrides are not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 ipv6Pool(pool: string): this
 ```
@@ -641,6 +659,8 @@ Set the IPv6 pool used to derive per-sandbox `/64` guest prefixes. Defaults to `
 </div>
 
 #### <span className="msb-recv" id="nb-interface">.</span><span className="msb-hn">interface()</span>
+
+<Tooltip tip="Interface and IP-pool overrides are not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 interface(configure: (b: InterfaceOverridesBuilder) => InterfaceOverridesBuilder): this
@@ -1541,6 +1561,8 @@ Toggle DNS rebinding protection. When enabled, DNS responses resolving to privat
 
 #### <span className="msb-recv">.</span><span className="msb-hn">nameservers()</span>
 
+<Tooltip tip="Custom nameservers are not available on microsandbox cloud; cloud uses platform-managed DNS."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 nameservers(servers: string[]): this
 ```
@@ -1621,6 +1643,8 @@ Verify upstream server certificates only when the upstream SNI matches `pattern`
 
 #### <span className="msb-recv">.</span><span className="msb-hn">interceptedPorts()</span>
 
+<Tooltip tip="TLS interception and host-CA trust are not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 interceptedPorts(ports: number[]): this
 ```
@@ -1655,6 +1679,8 @@ Block QUIC on intercepted ports, forcing TCP/TLS fallback.
 
 #### <span className="msb-recv">.</span><span className="msb-hn">interceptCaCert()</span>
 
+<Tooltip tip="TLS interception and host-CA trust are not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 interceptCaCert(path: string): this
 ```
@@ -1671,6 +1697,8 @@ Path to a PEM file used as the intercepting CA's certificate.
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">interceptCaKey()</span>
+
+<Tooltip tip="TLS interception and host-CA trust are not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 interceptCaKey(path: string): this

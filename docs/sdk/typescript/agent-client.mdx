@@ -57,6 +57,8 @@ Frame flag: this message requests sandbox shutdown.
 
 #### <span className="msb-recv">AgentClient.</span><span className="msb-hn">connectSandbox()</span>
 
+<Tooltip tip="Connecting an agent client by socket path is local-only; on microsandbox cloud the SDK uses the agent WebSocket route internally."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 static connectSandbox(name: string, opts?: AgentConnectOptions): Promise<AgentClient>
 ```
@@ -94,6 +96,8 @@ Connect to a running sandbox by name. Resolves the sandbox's relay socket path a
 </div>
 
 #### <span className="msb-recv">AgentClient.</span><span className="msb-hn">connect()</span>
+
+<Tooltip tip="Connecting an agent client by socket path is local-only; on microsandbox cloud the SDK uses the agent WebSocket route internally."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 static connect(path: string, opts?: AgentConnectOptions): Promise<AgentClient>
@@ -133,6 +137,8 @@ Connect to an `agentd` relay socket by path. Use this when you already have the 
 </div>
 
 #### <span className="msb-recv">AgentClient.</span><span className="msb-hn">socketPath()</span>
+
+<Tooltip tip="Connecting an agent client by socket path is local-only; on microsandbox cloud the SDK uses the agent WebSocket route internally."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 static socketPath(name: string): string

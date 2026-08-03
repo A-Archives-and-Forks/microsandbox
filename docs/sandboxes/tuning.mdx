@@ -4,6 +4,8 @@ description: Change sandbox settings without recreating it
 icon: "sliders"
 ---
 
+<Tooltip tip="modify and live resize are not yet available on microsandbox cloud; create a replacement sandbox with the new configuration."><span className="msb-badge-limited">Limited on cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 A sandbox's configuration is the host-side record that says how to run it: image, CPU and memory, environment, labels, mounts, network policy, secrets, and lifecycle settings.
 
 Some configuration is fixed when the VM boots. Some can change while the sandbox is running. Use `modify` when you want to change an existing sandbox without recreating it.

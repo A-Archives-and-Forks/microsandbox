@@ -109,6 +109,8 @@ sb, err := m.CreateSandbox(ctx, "worker",
 
 ## Registry TLS
 
+<Tooltip tip="Plain-HTTP registries and custom CA certificates are not supported on microsandbox cloud; images are pulled from HTTPS registries only."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 By default, microsandbox connects to registries over HTTPS using system CA roots. You can customize this per-registry in `~/.microsandbox/config.json`.
 
 ### Plain HTTP registries
@@ -187,6 +189,8 @@ sb, err := m.CreateSandbox(ctx, "worker",
 </CodeGroup>
 
 ## Image storage
+
+<Tooltip tip="Image-cache commands are local-only. On microsandbox cloud, specify an OCI image on create and it is pulled for you."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 Images are cached in the global microsandbox home directory:
 
