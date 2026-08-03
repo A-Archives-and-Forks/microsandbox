@@ -3,6 +3,8 @@ title: Images
 description: Go SDK - Image cache API reference
 ---
 
+<Tooltip tip="The image-cache API manages the local cache and is local-only. On microsandbox cloud, specify an OCI image when creating the sandbox and it is pulled for you."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 Inspect and prune the local OCI image cache: the images that sandbox creation has already pulled. Images can also be loaded into the cache from local archives and saved back out to archive files, so locally built images work without a registry. Everything is reached through the package-level `Image` value, or through an [`ImageHandle`](#imagehandle) once you hold one.
 
 ```go

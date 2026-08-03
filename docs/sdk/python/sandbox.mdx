@@ -455,6 +455,8 @@ Attach your terminal to the sandbox's default shell for an interactive session.
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">ping()</span>
 
+<Tooltip tip="Not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```python
 async def ping(self) -> SandboxPingResult
 ```
@@ -481,6 +483,8 @@ Check that the running sandbox's guest agent is reachable without refreshing idl
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">touch()</span>
 
+<Tooltip tip="Not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```python
 async def touch(self) -> SandboxTouchResult
 ```
@@ -506,6 +510,8 @@ Explicitly refresh the running sandbox's idle activity. This sends `core.touch`,
 </div>
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">modify()</span>
+
+<Tooltip tip="modify is not available on microsandbox cloud; recreate the sandbox with the new configuration."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```python
 async def modify(
@@ -625,6 +631,8 @@ A live CPU or memory resize can take a moment to settle. The new limits are enfo
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">metrics()</span>
 
+<Tooltip tip="Resource metrics are not available on microsandbox cloud; use an external monitoring system."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```python
 async def metrics(self) -> SandboxMetrics
 ```
@@ -650,6 +658,8 @@ Get a point-in-time snapshot of the sandbox's resource usage: CPU, memory, disk 
 </div>
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">metrics_stream()</span>
+
+<Tooltip tip="Resource metrics are not available on microsandbox cloud; use an external monitoring system."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```python
 async def metrics_stream(self, interval: float = 1.0) -> MetricsStream
@@ -686,6 +696,8 @@ Stream resource metrics at a regular interval. The returned [`MetricsStream`](#m
 </div>
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">logs()</span>
+
+<Tooltip tip="Bounded log reads are not available on microsandbox cloud; follow live with log streaming and persist output externally."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```python
 async def logs(
@@ -857,6 +869,8 @@ Request graceful shutdown and return once the request is sent, without waiting f
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">kill()</span>
 
+<Tooltip tip="Not available on microsandbox cloud; use a graceful stop."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```python
 async def kill(self, timeout: float | None = None) -> None
 ```
@@ -882,6 +896,8 @@ Force-terminate the sandbox and wait until stopped state is observed. No gracefu
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">request_kill()</span>
 
+<Tooltip tip="Not available on microsandbox cloud; use a graceful stop."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```python
 async def request_kill(self) -> None
 ```
@@ -897,6 +913,8 @@ await sb.request_kill()
 Request force termination and return once the signal is sent, without waiting for stopped state.
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">request_drain()</span>
+
+<Tooltip tip="Not available on microsandbox cloud; use a graceful stop."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```python
 async def request_drain(self) -> None

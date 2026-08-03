@@ -169,11 +169,9 @@ See [Tuning](/sandboxes/tuning) for the change model, CPU and memory resize, lab
 
 ## Ping and touch
 
-Use `ping` to check that a running sandbox's guest agent is reachable, and `touch` to intentionally refresh its idle timer. Ping is a health check only: it does not count as sandbox activity and will not keep an idle sandbox alive by itself. Touch is the explicit keepalive.
+<Tooltip tip="Not yet available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
-<Note>
-  **Cloud:** Ping and touch are not yet available.
-</Note>
+Use `ping` to check that a running sandbox's guest agent is reachable, and `touch` to intentionally refresh its idle timer. Ping is a health check only: it does not count as sandbox activity and will not keep an idle sandbox alive by itself. Touch is the explicit keepalive.
 
 <CodeGroup>
 ```rust Rust
@@ -195,11 +193,9 @@ msb ping worker --touch
 
 ## Kill immediately
 
-If a sandbox is unresponsive (e.g., stuck in a tight loop or a panic), force-kill it. The sandbox is terminated immediately with no graceful shutdown.
+<Tooltip tip="Not yet available on microsandbox cloud; use a graceful stop instead."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
-<Note>
-  **Cloud:** Force kill is not yet available; use a graceful [stop](#stop-and-restart).
-</Note>
+If a sandbox is unresponsive (e.g., stuck in a tight loop or a panic), force-kill it. The sandbox is terminated immediately with no graceful shutdown. On cloud, use a graceful [stop](#stop-and-restart).
 
 <CodeGroup>
 ```rust Rust
@@ -249,11 +245,9 @@ err := sb.Detach(ctx)
 
 ## Request drain
 
-Trigger a graceful shutdown that lets existing commands finish but rejects new ones. The sandbox moves to `Draining` and transitions to `Stopped` when all in-flight commands complete. This is useful for zero-downtime rotation of worker sandboxes.
+<Tooltip tip="Not yet available on microsandbox cloud; use a graceful stop instead."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
-<Note>
-  **Cloud:** Drain is not yet available; use a graceful [stop](#stop-and-restart).
-</Note>
+Trigger a graceful shutdown that lets existing commands finish but rejects new ones. The sandbox moves to `Draining` and transitions to `Stopped` when all in-flight commands complete. This is useful for zero-downtime rotation of worker sandboxes.
 
 <CodeGroup>
 ```rust Rust
@@ -406,11 +400,9 @@ Use [`msb logs`](/cli/sandbox-commands#msb-logs) or the SDK `logs()` method to r
 
 ## Sandbox process policies
 
-For production workloads, configure how the sandbox process handles shutdown, idle detection, and maximum lifetime.
+<Tooltip tip="Duration and idle policies are limited on microsandbox cloud today; stop and remove sandboxes explicitly when your workload finishes."><span className="msb-badge-limited">Limited on cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
 
-<Note>
-  **Cloud:** Duration and idle policies are limited today; stop and remove sandboxes explicitly when your workload finishes.
-</Note>
+For production workloads, configure how the sandbox process handles shutdown, idle detection, and maximum lifetime.
 
 <CodeGroup>
 ```rust Rust

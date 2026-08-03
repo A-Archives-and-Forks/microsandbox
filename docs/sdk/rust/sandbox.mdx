@@ -280,6 +280,8 @@ Release the handle without stopping the sandbox. The sandbox continues running a
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">drain()</span>
 
+<Tooltip tip="Not available on microsandbox cloud; use a graceful stop."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 async fn drain(&self) -> MicrosandboxResult<()>
 ```
@@ -295,6 +297,8 @@ sb.drain().await?;
 Start a graceful drain. Existing commands run to completion, but new `exec` calls are rejected. The sandbox transitions to `Stopped` when all in-flight commands finish. Useful for zero-downtime rotation of worker sandboxes.
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">request_drain()</span>
+
+<Tooltip tip="Not available on microsandbox cloud; use a graceful stop."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 async fn request_drain(&self) -> MicrosandboxResult<()>
@@ -329,6 +333,8 @@ Get a filesystem handle for reading and writing files inside the running sandbox
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">kill()</span>
 
+<Tooltip tip="Not available on microsandbox cloud; use a graceful stop."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 async fn kill(&self) -> MicrosandboxResult<()>
 ```
@@ -345,6 +351,8 @@ Force-terminate the sandbox immediately with SIGKILL. No graceful shutdown - use
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">kill_with_timeout()</span>
 
+<Tooltip tip="Not available on microsandbox cloud; use a graceful stop."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 async fn kill_with_timeout(&self, timeout: Duration) -> MicrosandboxResult<()>
 ```
@@ -353,6 +361,8 @@ Force-terminate the sandbox and wait up to `timeout` for stopped-state observati
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">request_kill()</span>
 
+<Tooltip tip="Not available on microsandbox cloud; use a graceful stop."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 async fn request_kill(&self) -> MicrosandboxResult<()>
 ```
@@ -360,6 +370,8 @@ async fn request_kill(&self) -> MicrosandboxResult<()>
 Request force termination and return once the request is sent, without waiting for stopped-state observation.
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">metrics()</span>
+
+<Tooltip tip="Resource metrics are not available on microsandbox cloud; use an external monitoring system."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 async fn metrics(&self) -> MicrosandboxResult<SandboxMetrics>
@@ -386,6 +398,8 @@ Get a point-in-time snapshot of the sandbox's resource usage: CPU, memory, disk 
 </div>
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">metrics_stream()</span>
+
+<Tooltip tip="Resource metrics are not available on microsandbox cloud; use an external monitoring system."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 fn metrics_stream(&self, interval: Duration) -> impl Stream<Item = MicrosandboxResult<SandboxMetrics>>
@@ -425,6 +439,8 @@ Stream resource metrics at a regular interval. Returns an async stream that yiel
 </div>
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">logs()</span>
+
+<Tooltip tip="Bounded log reads are not available on microsandbox cloud; follow live with log streaming and persist output externally."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 fn logs(&self, opts: &LogOptions) -> MicrosandboxResult<Vec<LogEntry>>
@@ -496,6 +512,8 @@ The default sources are `Stdout`, `Stderr`, and `Output` (PTY-merged). Pass `Log
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">ping()</span>
 
+<Tooltip tip="Not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 async fn ping(&self) -> MicrosandboxResult<SandboxPingResult>
 ```
@@ -522,6 +540,8 @@ Check whether the running sandbox's guest agent is reachable. This sends `core.p
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">touch()</span>
 
+<Tooltip tip="Not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 async fn touch(&self) -> MicrosandboxResult<SandboxTouchResult>
 ```
@@ -547,6 +567,8 @@ Explicitly refresh the running sandbox's idle timer. This sends `core.touch`; us
 </div>
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">modify()</span>
+
+<Tooltip tip="modify is not available on microsandbox cloud; recreate the sandbox with the new configuration."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 fn modify(&self) -> SandboxModificationBuilder
@@ -1163,6 +1185,8 @@ Modify the rootfs before the VM boots. Patches go into the writable layer - the 
 
 #### <span className="msb-recv">.</span><span className="msb-hn">port()</span>
 
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 fn port(self, host_port: u16, guest_port: u16) -> Self
 ```
@@ -1183,6 +1207,8 @@ Publish a TCP port from the sandbox to the host. The default host bind address i
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">port_bind()</span>
+
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 fn port_bind(self, host_bind: IpAddr, host_port: u16, guest_port: u16) -> Self
@@ -1209,6 +1235,8 @@ Publish a TCP port on a specific host bind address, such as `0.0.0.0`.
 
 #### <span className="msb-recv">.</span><span className="msb-hn">port_udp()</span>
 
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 fn port_udp(self, host_port: u16, guest_port: u16) -> Self
 ```
@@ -1229,6 +1257,8 @@ Publish a UDP port. The default host bind address is `127.0.0.1`.
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">port_udp_bind()</span>
+
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 fn port_udp_bind(self, host_bind: IpAddr, host_port: u16, guest_port: u16) -> Self
@@ -1305,6 +1335,8 @@ Configure registry connection settings for the sandbox image pull, including exp
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">replace()</span>
+
+<Tooltip tip="Replace-on-create is not available on microsandbox cloud; remove the existing sandbox first."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 fn replace(self) -> Self

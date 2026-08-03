@@ -98,9 +98,7 @@ msb create python --name safe-agent --net-default allow \
 
 ## Pinning nameservers
 
-<Note>
-  **Cloud:** Custom nameservers are not available; cloud sandboxes use platform-managed DNS.
-</Note>
+<Tooltip tip="Custom nameservers are not available on microsandbox cloud; cloud sandboxes use platform-managed DNS."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 By default the sandbox picks up the host's resolver list automatically:
 

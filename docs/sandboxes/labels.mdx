@@ -61,11 +61,9 @@ The OCI image's own labels (`LABEL` instructions, `org.opencontainers.image.*`, 
 
 ## Change while running
 
-Add, change, or remove labels without recreating the sandbox:
+<Tooltip tip="modify is not yet available on microsandbox cloud; set labels at create time."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
-<Note>
-  **Cloud:** `modify` is not yet available; set labels at create time.
-</Note>
+Add, change, or remove labels without recreating the sandbox:
 
 <CodeGroup>
 ```rust Rust

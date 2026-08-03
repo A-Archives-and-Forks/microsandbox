@@ -4,11 +4,9 @@ description: Capture a sandbox's writable layer as a portable artifact
 icon: "code-branch"
 ---
 
-A snapshot is a portable, on-disk capture of a sandbox's writable filesystem. Move it with `scp`, archive it as `.tar.zst`, or boot fresh sandboxes from it.
+<Tooltip tip="Disk snapshots are local-only. On microsandbox cloud, use a named volume for state that must survive sandbox replacement."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
-<Note>
-  **Cloud:** Disk snapshots are local-only. On cloud, use a [named volume](/sandboxes/volumes#named-volumes) for state that must survive sandbox replacement.
-</Note>
+A snapshot is a portable, on-disk capture of a sandbox's writable filesystem. Move it with `scp`, archive it as `.tar.zst`, or boot fresh sandboxes from it.
 
 <Note>
 Snapshots are **disk-only** and require a sandbox that is not running. Stopped and crashed sandboxes can be snapshotted; running, draining, and paused sandboxes are rejected.

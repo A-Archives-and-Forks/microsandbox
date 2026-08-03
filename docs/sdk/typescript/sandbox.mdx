@@ -336,6 +336,8 @@ Get a filesystem handle for reading and writing files inside the running sandbox
 
 #### <span className="msb-recv">sandbox.</span><span className="msb-hn">kill()</span>
 
+<Tooltip tip="Not available on microsandbox cloud; use a graceful stop."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 kill(): Promise<void>
 ```
@@ -351,6 +353,8 @@ await sandbox.kill(); // no graceful shutdown
 Force-terminate the sandbox and wait until stopped state is observed. No graceful shutdown - use when the sandbox is unresponsive. Pending writes that the workload hasn't `fsync`'d may be lost, same durability semantics as a sudden power loss on a physical machine. Prefer [`stop()`](#sandbox-stop) for graceful shutdown that gives the workload a chance to flush.
 
 #### <span className="msb-recv">sandbox.</span><span className="msb-hn">killWithTimeout()</span>
+
+<Tooltip tip="Not available on microsandbox cloud; use a graceful stop."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 killWithTimeout(timeoutMs: number): Promise<void>
@@ -376,6 +380,8 @@ Force-terminate the sandbox and wait up to `timeoutMs` for stopped-state observa
 </div>
 
 #### <span className="msb-recv">sandbox.</span><span className="msb-hn">logs()</span>
+
+<Tooltip tip="Bounded log reads are not available on microsandbox cloud; follow live with log streaming and persist output externally."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 logs(opts?: LogReadOptions): Promise<LogEntry[]>
@@ -474,6 +480,8 @@ Stream captured output as it appears, with optional follow. Backed by the same o
 
 #### <span className="msb-recv">sandbox.</span><span className="msb-hn">ping()</span>
 
+<Tooltip tip="Not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 ping(): Promise<SandboxPingResult>
 ```
@@ -500,6 +508,8 @@ Check that the running sandbox's guest agent is reachable without refreshing idl
 
 #### <span className="msb-recv">sandbox.</span><span className="msb-hn">touch()</span>
 
+<Tooltip tip="Not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 touch(): Promise<SandboxTouchResult>
 ```
@@ -525,6 +535,8 @@ Explicitly refresh the running sandbox's idle activity. This sends `core.touch`,
 </div>
 
 #### <span className="msb-recv">sandbox.</span><span className="msb-hn">modify()</span>
+
+<Tooltip tip="modify is not available on microsandbox cloud; recreate the sandbox with the new configuration."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 modify(opts?: ModifyOptions): Promise<SandboxModificationPlan>
@@ -579,6 +591,8 @@ A live CPU or memory resize can take a moment to settle. The new limits are enfo
 
 #### <span className="msb-recv">sandbox.</span><span className="msb-hn">metrics()</span>
 
+<Tooltip tip="Resource metrics are not available on microsandbox cloud; use an external monitoring system."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 metrics(): Promise<SandboxMetrics>
 ```
@@ -604,6 +618,8 @@ Get a point-in-time snapshot of the sandbox's resource usage: CPU, memory, disk 
 </div>
 
 #### <span className="msb-recv">sandbox.</span><span className="msb-hn">metricsStream()</span>
+
+<Tooltip tip="Resource metrics are not available on microsandbox cloud; use an external monitoring system."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 metricsStream(intervalMs: number): Promise<MetricsStream>
@@ -642,6 +658,8 @@ Stream resource metrics at a regular interval. The returned [`MetricsStream`](#m
 
 #### <span className="msb-recv">sandbox.</span><span className="msb-hn">requestDrain()</span>
 
+<Tooltip tip="Not available on microsandbox cloud; use a graceful stop."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 requestDrain(): Promise<void>
 ```
@@ -658,6 +676,8 @@ await sandbox.waitUntilStopped();
 Request a graceful drain and return once the request is sent. Existing commands run to completion, but new `exec` calls are rejected. The sandbox transitions to `stopped` when all in-flight commands finish. Use [`waitUntilStopped()`](#sandbox-waituntilstopped) when the caller needs stopped-state observation. Useful for zero-downtime rotation of worker sandboxes.
 
 #### <span className="msb-recv">sandbox.</span><span className="msb-hn">requestKill()</span>
+
+<Tooltip tip="Not available on microsandbox cloud; use a graceful stop."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 requestKill(): Promise<void>
@@ -1363,6 +1383,8 @@ Modify the rootfs before the VM boots. Patches go into the writable layer - the 
 
 #### <span className="msb-recv">.</span><span className="msb-hn">port()</span>
 
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 port(host: number, guest: number): this
 ```
@@ -1383,6 +1405,8 @@ Publish a TCP port from the sandbox to the host. The default host bind address i
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">portBind()</span>
+
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 portBind(bind: string, host: number, guest: number): this
@@ -1409,6 +1433,8 @@ Publish a TCP port on a specific host bind address, such as `"0.0.0.0"`.
 
 #### <span className="msb-recv">.</span><span className="msb-hn">portUdp()</span>
 
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 portUdp(host: number, guest: number): this
 ```
@@ -1429,6 +1455,8 @@ Publish a UDP port. The default host bind address is `127.0.0.1`.
 </div>
 
 #### <span className="msb-recv">.</span><span className="msb-hn">portUdpBind()</span>
+
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 portUdpBind(bind: string, host: number, guest: number): this
@@ -1508,6 +1536,8 @@ Configure the OCI registry connection: authentication, insecure transport, and C
 
 #### <span className="msb-recv">.</span><span className="msb-hn">replace()</span>
 
+<Tooltip tip="Replace-on-create is not available on microsandbox cloud; remove the existing sandbox first."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```typescript
 replace(): this
 ```
@@ -1515,6 +1545,8 @@ replace(): this
 If a sandbox with the same name already exists, stop it (10s SIGTERM grace, then SIGKILL), remove it, and create a fresh one. Without this, creation fails on name conflict.
 
 #### <span className="msb-recv">.</span><span className="msb-hn">replaceWithTimeout()</span>
+
+<Tooltip tip="Replace-on-create is not available on microsandbox cloud; remove the existing sandbox first."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
 replaceWithTimeout(timeoutMs: number): this

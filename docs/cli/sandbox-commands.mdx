@@ -67,9 +67,11 @@ Use `msb run --help` for the full flag list.
 
 Published ports bind to `127.0.0.1` by default. Use an explicit bind address only when the sandbox service should be reachable beyond localhost. On Windows, opening a published port can trigger a Windows Defender Firewall prompt for `msb.exe`. Keep the bind on `127.0.0.1` for local-only development, and allow private/public network access only when you intentionally bind beyond loopback.
 
+On microsandbox cloud, publishing host ports is not available; expose the service through a cloud-reachable endpoint instead.
+
 ### Network profiles
 
-`--net` is repeatable and accepts comma-separated profiles. `public`, `private`, and `host` compose; DNS through the sandbox gateway is enabled automatically and only once. `all` and `none` are terminal policies and cannot be mixed with the three positive profiles.
+`--net` is repeatable and accepts comma-separated profiles. `public`, `private`, and `host` compose; DNS through the sandbox gateway is enabled automatically and only once. `all` and `none` are terminal policies and cannot be mixed with the three positive profiles. On microsandbox cloud, the `host` profile does not refer to the machine running the CLI; use a network endpoint reachable from the cloud worker.
 
 ```bash
 msb run alpine --net public
@@ -138,6 +140,8 @@ msb create --replace-with-timeout 30s python --name worker  # Give the old one 3
 msb create --replace-with-timeout 0 python --name worker    # SIGKILL immediately
 ```
 
+On microsandbox cloud, `--replace` and `--replace-with-timeout` are not available; remove the existing sandbox first, then create the replacement.
+
 ## msb start
 
 Resume a stopped sandbox. Name one or more sandboxes, or select them by label.
@@ -172,9 +176,7 @@ same durability semantics as a sudden power loss on a physical
 machine. For durable writes, workloads should `fsync` important data
 themselves.
 
-<Note>
-  **Cloud:** `--force` is not yet available; stops are always graceful.
-</Note>
+On cloud, `--force` is not yet available; stops are always graceful.
 
 | Flag | Description |
 |------|-------------|
@@ -206,6 +208,8 @@ msb restart -t 30 devbox
 
 ## msb ping
 
+<Tooltip tip="Not yet available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 Check whether one or more running sandbox agents are reachable. `msb ping` talks to `agentd` with `core.ping` and does not refresh the sandbox idle timer.
 
 ```bash
@@ -217,10 +221,6 @@ msb ping api --touch
 
 Use `--touch` when a successful health check should also refresh the idle timer. Without `--touch`, ping is a pure reachability check.
 
-<Note>
-  **Cloud:** `msb ping` and `msb touch` are not yet available.
-</Note>
-
 | Flag | Description |
 |------|-------------|
 | `--label` | Ping every sandbox carrying this label (`KEY=VALUE`). Repeatable; AND-matched. Unioned with any named sandboxes |
@@ -228,6 +228,8 @@ Use `--touch` when a successful health check should also refresh the idle timer.
 | `-q`, `--quiet` | Suppress progress output |
 
 ## msb touch
+
+<Tooltip tip="Not yet available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 Explicitly refresh the idle timer for one or more running sandboxes. `msb touch` sends `core.touch`; it is the intentional keepalive command for long-lived idle sandboxes.
 
@@ -244,11 +246,9 @@ msb touch --label app=engine
 
 ## msb modify
 
-Change a running sandbox's configuration. Every change is planned and applied all-or-nothing. CPU and memory resize live within the `max_cpus` / `max_memory` ceilings; other changes that can't apply live need `--restart` or `--next-start`.
+<Tooltip tip="Not yet available on microsandbox cloud; recreate the sandbox with the new configuration."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
-<Note>
-  **Cloud:** `msb modify` is not yet available; recreate the sandbox with the new configuration.
-</Note>
+Change a running sandbox's configuration. Every change is planned and applied all-or-nothing. CPU and memory resize live within the `max_cpus` / `max_memory` ceilings; other changes that can't apply live need `--restart` or `--next-start`.
 
 ```bash
 msb modify api --cpus 4                     # live when 4 <= max_cpus
@@ -257,7 +257,7 @@ msb modify api --max-memory 16G --next-start # raise the ceiling on next start
 msb modify api --cpus 8 --dry-run           # show the plan, apply nothing
 ```
 
-`max_cpus` and `max_memory` are boot-time reservations chosen at create time. They default to the effective `cpus`/`memory`, which leaves no headroom; live growth beyond them is impossible without a restart. Reserving capacity costs almost nothing (parked vCPUs and lazily-backed memory), so set them above the initial values at create time if the sandbox may need to grow.
+`max_cpus` and `max_memory` are boot-time reservations chosen at create time. They default to the effective `cpus`/`memory`, which leaves no headroom; live growth beyond them is impossible without a restart. Reserving capacity costs almost nothing (parked vCPUs and lazily-backed memory), so set them above the initial values at create time if the sandbox may need to grow. On microsandbox cloud, these ceilings are not carried; recreate the sandbox to resize beyond its initial values.
 
 Live resize is not necessarily instant. When an accepted resize has not fully settled, the apply output includes a convergence table with a `STATE` column. The values are: `applied` (requested, actual, and enforced values match), `converging` (the guest is still onlining CPUs or plugging memory), `guest-refused` (the guest would not cooperate; the host enforces the new limit anyway), and `failed`. JSON output (`--format json`) carries the same states in `resize_status`.
 
@@ -327,11 +327,9 @@ Host-to-sandbox and sandbox-to-host forms follow `docker cp` syntax. Same-sandbo
 
 ## msb logs
 
-Read captured output from a sandbox. Each sandbox stores its captured stdio under `<sandbox-dir>/logs/exec.log` as JSON Lines, plus runtime/kernel diagnostics in `runtime.log`/`kernel.log`. The command works on running and stopped sandboxes alike; there is no protocol traffic, just a file read.
+<Tooltip tip="Not yet available on microsandbox cloud; follow output live with the SDK and persist it externally."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
-<Note>
-  **Cloud:** `msb logs` is not yet available. Follow output live with the SDK and persist it externally when you need retention.
-</Note>
+Read captured output from a sandbox. Each sandbox stores its captured stdio under `<sandbox-dir>/logs/exec.log` as JSON Lines, plus runtime/kernel diagnostics in `runtime.log`/`kernel.log`. The command works on running and stopped sandboxes alike; there is no protocol traffic, just a file read.
 
 ```bash
 # Captured user-program output (default sources: stdout + stderr + output)
@@ -428,11 +426,9 @@ The `CPUS` and `MEM` columns show the sandbox's allocation as `effective / max`,
 
 ## msb metrics
 
-Show live CPU, memory, disk, network, and optional upper disk metrics for running sandboxes.
+<Tooltip tip="Not yet available on microsandbox cloud; instrument the workload with an external monitoring system."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
-<Note>
-  **Cloud:** `msb metrics` is not yet available. Instrument the workload itself with an external monitoring system.
-</Note>
+Show live CPU, memory, disk, network, and optional upper disk metrics for running sandboxes.
 
 ```bash
 msb metrics                 # All running sandboxes (one-shot table)
@@ -473,6 +469,8 @@ The `CPU` and `MEM` denominators come from the catalog's **active config**, so t
 `--format json` and `--follow` keep the raw cumulative counters (no rate conversion) and add `state` and `cpus` fields.
 
 ## msb inspect
+
+<Tooltip tip="On microsandbox cloud, text output omits parsed configuration details; use --format json to view the raw cloud specification."><span className="msb-badge-limited">Limited on cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 Show detailed configuration and status.
 

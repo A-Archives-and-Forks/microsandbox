@@ -170,6 +170,8 @@ Alias for [`connect_with`](#ssh-connect_with).
 
 #### <span className="msb-recv">ssh.</span><span className="msb-hn">server()</span>
 
+<Tooltip tip="Serving with the convenience defaults is not available on microsandbox cloud; supply explicit host-key and authorized-key material, or use the SSH client."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 async fn server(&self) -> MicrosandboxResult<SshServer>
 ```
@@ -196,6 +198,8 @@ Prepare a reusable SSH server endpoint for this sandbox. Loads or creates the ho
 </div>
 
 #### <span className="msb-recv">ssh.</span><span className="msb-hn">prepare_server()</span>
+
+<Tooltip tip="Serving with the convenience defaults is not available on microsandbox cloud; supply explicit host-key and authorized-key material, or use the SSH client."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 async fn prepare_server(&self) -> MicrosandboxResult<SshServer>

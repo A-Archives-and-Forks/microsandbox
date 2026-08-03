@@ -202,6 +202,8 @@ Return the host filesystem path of the volume's data directory.
 
 #### <span className="msb-recv">v.</span><span className="msb-hn">FS()</span>
 
+<Tooltip tip="Unmounted-volume filesystem access is not available on microsandbox cloud; mount the volume into a sandbox and use the sandbox filesystem."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```go
 func (v *Volume) FS() *VolumeFs
 ```
@@ -337,6 +339,8 @@ Return the creation timestamp, or the zero `time.Time` value if unknown.
 
 #### <span className="msb-recv">h.</span><span className="msb-hn">FS()</span>
 
+<Tooltip tip="Unmounted-volume filesystem access is not available on microsandbox cloud; mount the volume into a sandbox and use the sandbox filesystem."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```go
 func (h *VolumeHandle) FS() *VolumeFs
 ```
@@ -385,6 +389,8 @@ Return the absolute host path of the volume's data directory.
 
 #### <span className="msb-recv">vfs.</span><span className="msb-hn">Read()</span>
 
+<Tooltip tip="Unmounted-volume filesystem access is not available on microsandbox cloud; mount the volume into a sandbox and use the sandbox filesystem."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```go
 func (fs *VolumeFs) Read(relPath string) ([]byte, error)
 ```
@@ -411,6 +417,8 @@ Read the contents of a file relative to the volume root.
 
 #### <span className="msb-recv">vfs.</span><span className="msb-hn">ReadString()</span>
 
+<Tooltip tip="Unmounted-volume filesystem access is not available on microsandbox cloud; mount the volume into a sandbox and use the sandbox filesystem."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```go
 func (fs *VolumeFs) ReadString(relPath string) (string, error)
 ```
@@ -418,6 +426,8 @@ func (fs *VolumeFs) ReadString(relPath string) (string, error)
 Read a file and return its contents as a UTF-8 string.
 
 #### <span className="msb-recv">vfs.</span><span className="msb-hn">Write()</span>
+
+<Tooltip tip="Unmounted-volume filesystem access is not available on microsandbox cloud; mount the volume into a sandbox and use the sandbox filesystem."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```go
 func (fs *VolumeFs) Write(relPath string, data []byte) error
@@ -439,6 +449,8 @@ Write data to a file, creating or truncating it. Created files use mode `0o644`.
 </div>
 
 #### <span className="msb-recv">vfs.</span><span className="msb-hn">WriteString()</span>
+
+<Tooltip tip="Unmounted-volume filesystem access is not available on microsandbox cloud; mount the volume into a sandbox and use the sandbox filesystem."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```go
 func (fs *VolumeFs) WriteString(relPath, content string) error

@@ -109,11 +109,9 @@ sb, err := m.CreateSandbox(ctx, "worker",
 
 ## Registry TLS
 
-By default, microsandbox connects to registries over HTTPS using system CA roots. You can customize this per-registry in `~/.microsandbox/config.json`.
+<Tooltip tip="Plain-HTTP registries and custom CA certificates are not supported on microsandbox cloud; images are pulled from HTTPS registries only."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
-<Note>
-  **Cloud:** Plain-HTTP registries and custom CA certificates are not supported; cloud pulls images from HTTPS registries only.
-</Note>
+By default, microsandbox connects to registries over HTTPS using system CA roots. You can customize this per-registry in `~/.microsandbox/config.json`.
 
 ### Plain HTTP registries
 
@@ -192,6 +190,8 @@ sb, err := m.CreateSandbox(ctx, "worker",
 
 ## Image storage
 
+<Tooltip tip="Image-cache commands are local-only. On microsandbox cloud, specify an OCI image on create and it is pulled for you."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 Images are cached in the global microsandbox home directory:
 
 | Path | Description |
@@ -206,10 +206,6 @@ Layers are content-addressable and deduplicated. If `python:3.12` and `python:3.
 <Tip>
   Use `msb pull` from the CLI to pre-pull images before creating sandboxes. This avoids blocking on a download during `Sandbox.create`.
 </Tip>
-
-<Note>
-  **Cloud:** Image-cache commands are local-only. Specify an OCI image when creating the sandbox; cloud resolves and pulls it for you.
-</Note>
 
 Use `msb image prune` to remove cached images that are not used by any sandbox or indexed snapshot and reclaim dangling image artifacts. Prune keeps images referenced by existing sandboxes or snapshots. It cleans up image metadata, unreachable manifests, orphaned layers, layer EROFS artifacts, fsmeta EROFS artifacts, and VMDK descriptor artifacts.
 
