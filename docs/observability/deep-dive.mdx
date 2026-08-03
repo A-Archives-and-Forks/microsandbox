@@ -56,7 +56,7 @@ fully-qualified name is `microsandbox.<suffix>`.
 Cumulative byte fields are emitted as gauges carrying the absolute
 cumulative value. Use `rate()` (PromQL, OTel-flavored Prom) for
 throughput. The reason: each shm snapshot already carries an absolute
-value, and counter `add()` semantics would require us to track
+value, and counter `add()` semantics would require tracking
 per-sandbox deltas across runs.
 
 The collector also emits its own operational series; see
