@@ -396,15 +396,6 @@ await Snapshot.save("after-pip-install", "./baseline.tar.zst", {
 static load(archive: string, dest?: string): Promise<SnapshotHandle>
 ```
 
-<Accordion title="Example">
-
-```typescript
-const h = await Snapshot.import("./baseline.tar.zst");
-console.log("imported", h.digest);
-```
-
-</Accordion>
-
 Unpack a snapshot archive (`.tar.zst` or `.tar`) into the snapshots directory, verifying recorded integrity on the way in. Compression is detected from magic bytes.
 
 <p className="msb-label">Parameters</p>
