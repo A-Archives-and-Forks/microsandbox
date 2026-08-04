@@ -340,14 +340,6 @@ err := m.Snapshot.Save(ctx, "after-pip-install", "/tmp/snap.tar.zst",
 func (snapshotFactory) Load(ctx context.Context, archive, dest string) (*SnapshotHandle, error)
 ```
 
-<Accordion title="Example">
-
-```go
-h, err := m.Snapshot.Import(ctx, "/tmp/snap.tar.zst", "")
-```
-
-</Accordion>
-
 Unpack a snapshot archive into the snapshots directory or an explicit `dest` directory. Pass `""` for the default destination.
 
 <p className="msb-label">Parameters</p>
