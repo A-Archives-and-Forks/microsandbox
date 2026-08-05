@@ -1558,6 +1558,7 @@ export type JsViolationActionBuilder = ViolationActionBuilder
 
 export declare class Volume {
   static get(name: string): Promise<VolumeHandle>
+  static getDefault(): Promise<VolumeHandle>
   static list(): Promise<Array<VolumeInfo>>
   static remove(name: string): Promise<void>
   get name(): string
@@ -1631,6 +1632,7 @@ export type JsVolumeFsWriteSink = VolumeFsWriteSink
 
 export declare class VolumeHandle {
   get name(): string
+  get isDefault(): boolean
   get quotaMib(): number | null
   get kind(): string
   get usedBytes(): number
@@ -2360,6 +2362,7 @@ export interface VolumeConfig {
 /** Volume handle info from the database. */
 export interface VolumeInfo {
   name: string
+  isDefault: boolean
   kind: string
   quotaMib?: number
   usedBytes: number
