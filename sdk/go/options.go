@@ -31,6 +31,8 @@ type SandboxConfig struct {
 	CPUs              uint8
 	MaxMemoryMiB      uint32
 	MaxCPUs           uint8
+	CPUPlacement      CPUPlacement
+	THP               THPPolicy
 	Workdir           string
 	Shell             string
 	SecurityProfile   SecurityProfile
@@ -78,6 +80,16 @@ type SandboxConfig struct {
 // SandboxOption is a functional option for configuring a sandbox.
 type SandboxOption func(*SandboxConfig)
 
+// CPUPlacement controls how sandbox vCPU threads are placed on host processors.
+type CPUPlacement string
+
+const (
+	CPUPlacementInherit CPUPlacement = "inherit"
+	CPUPlacementAuto    CPUPlacement = "auto"
+	CPUPlacementSpread  CPUPlacement = "spread"
+	CPUPlacementCompact CPUPlacement = "compact"
+)
+
 type persistedSandboxConfig struct {
 	Name              string               `json:"name"`
 	Image             json.RawMessage      `json:"image"`
@@ -87,6 +99,7 @@ type persistedSandboxConfig struct {
 	CPUs              uint8                `json:"cpus"`
 	MaxMemoryMiB      uint32               `json:"max_memory_mib"`
 	MaxCPUs           uint8                `json:"max_cpus"`
+	CPUPlacement      CPUPlacement         `json:"cpu_placement"`
 	Resources         *persistedResources  `json:"resources"`
 	Runtime           *persistedRuntime    `json:"runtime"`
 	Workdir           string               `json:"workdir"`
@@ -115,10 +128,12 @@ type persistedInitConfig struct {
 }
 
 type persistedResources struct {
-	CPUs         uint8  `json:"cpus"`
-	MemoryMiB    uint32 `json:"memory_mib"`
-	MaxCPUs      uint8  `json:"max_cpus"`
-	MaxMemoryMiB uint32 `json:"max_memory_mib"`
+	CPUs         uint8        `json:"cpus"`
+	MemoryMiB    uint32       `json:"memory_mib"`
+	MaxCPUs      uint8        `json:"max_cpus"`
+	MaxMemoryMiB uint32       `json:"max_memory_mib"`
+	CPUPlacement CPUPlacement `json:"cpu_placement"`
+	THP          THPPolicy    `json:"thp"`
 }
 
 type persistedRuntime struct {
@@ -193,6 +208,8 @@ func (c *SandboxConfig) UnmarshalJSON(data []byte) error {
 		CPUs:              raw.cpus(),
 		MaxMemoryMiB:      raw.maxMemoryMiB(),
 		MaxCPUs:           raw.maxCPUs(),
+		CPUPlacement:      raw.cpuPlacement(),
+		THP:               raw.thp(),
 		Workdir:           runtime.Workdir,
 		Shell:             runtime.Shell,
 		SecurityProfile:   raw.SecurityProfile,
@@ -254,6 +271,23 @@ func (c persistedSandboxConfig) maxMemoryMiB() uint32 {
 		return c.MaxMemoryMiB
 	}
 	return c.MemoryMiB
+}
+
+func (c persistedSandboxConfig) cpuPlacement() CPUPlacement {
+	if c.Resources != nil && c.Resources.CPUPlacement != "" {
+		return c.Resources.CPUPlacement
+	}
+	if c.CPUPlacement != "" {
+		return c.CPUPlacement
+	}
+	return CPUPlacementInherit
+}
+
+func (c persistedSandboxConfig) thp() THPPolicy {
+	if c.Resources != nil && c.Resources.THP != "" {
+		return c.Resources.THP
+	}
+	return THPMadvise
 }
 
 func (c persistedSandboxConfig) lifecycleEphemeral() bool {
@@ -425,6 +459,18 @@ const (
 	DeploymentProfileSingleTenant DeploymentProfile = "single-tenant"
 	// DeploymentProfileMultiTenant enables platform-owned isolation floors.
 	DeploymentProfileMultiTenant DeploymentProfile = "multi-tenant"
+)
+
+// THPPolicy selects the guest transparent huge-page policy at boot.
+type THPPolicy string
+
+const (
+	// THPAlways transparently uses huge pages for eligible anonymous mappings.
+	THPAlways THPPolicy = "always"
+	// THPMadvise uses huge pages only for mappings that explicitly request them.
+	THPMadvise THPPolicy = "madvise"
+	// THPNever disables transparent huge pages for anonymous mappings.
+	THPNever THPPolicy = "never"
 )
 
 // WithImage sets the container image to use (e.g. "python:3.12").
@@ -623,6 +669,16 @@ func WithMaxMemory(mebibytes uint32) SandboxOption {
 // WithMaxCPUs sets the boot-time maximum possible vCPU count.
 func WithMaxCPUs(cpus uint8) SandboxOption {
 	return func(o *SandboxConfig) { o.MaxCPUs = cpus }
+}
+
+// WithCPUPlacement selects the host placement policy for sandbox vCPU threads.
+func WithCPUPlacement(policy CPUPlacement) SandboxOption {
+	return func(o *SandboxConfig) { o.CPUPlacement = policy }
+}
+
+// WithTHP selects the guest transparent huge-page policy applied at boot.
+func WithTHP(policy THPPolicy) SandboxOption {
+	return func(o *SandboxConfig) { o.THP = policy }
 }
 
 // WithWorkdir sets the working directory inside the sandbox.
