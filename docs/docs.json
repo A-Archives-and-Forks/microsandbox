@@ -352,8 +352,15 @@
             "icon": "clock-rotate-left",
             "pages": [
               {
-                "group": "July 2026",
+                "group": "August 2026",
                 "expanded": true,
+                "pages": [
+                  "changelog/2026-08-07"
+                ]
+              },
+              {
+                "group": "July 2026",
+                "expanded": false,
                 "pages": [
                   "changelog/2026-07-31",
                   "changelog/2026-07-24",
