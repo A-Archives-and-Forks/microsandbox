@@ -32,7 +32,7 @@ See the [sandboxes overview](/sandboxes/overview).
 
 **Single- and multi-tenant deployment profiles**
 
-A new `DeploymentProfile` sits alongside the existing in-guest security profile and is available in Rust, Python, TypeScript, Go, and the CLI. `SingleTenant` preserves the requested local runtime configuration. `MultiTenant` intersects tenant policy with a host-owned public-network floor: it blocks private, loopback, link-local, multicast, metadata, and host destinations across TCP, UDP, ICMP, and DNS, forces DNS rebinding protection, disables tenant nameserver and interface overrides, prevents host CA import and published host ports, and caps concurrent connections. Tenant policy can still narrow the remaining public space but cannot broaden the floor.
+A new `DeploymentProfile` sits alongside the existing in-guest security profile and is available in Rust, Python, TypeScript, Go, and the CLI. `SingleTenant` preserves the requested local runtime configuration. `MultiTenant` intersects tenant policy with a host-owned public-network floor. The floor blocks private, loopback, link-local, multicast, metadata, and host destinations across TCP, UDP, ICMP, and DNS. It also forces DNS rebinding protection, disables tenant nameserver and interface overrides, prevents host CA import and published host ports, and caps concurrent connections. Tenant policy can still narrow the remaining public space but cannot broaden the floor.
 
 ```python
 from microsandbox import DeploymentProfile, Sandbox
