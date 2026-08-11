@@ -5,18 +5,6 @@ description: Python SDK - Sandbox API reference
 
 Create and control a microVM sandbox: boot it from an image, run commands, stream logs and metrics, then shut it down. See [Overview](/sandboxes/overview) for configuration examples and [Lifecycle](/sandboxes/lifecycle) for state management.
 
-<p className="msb-label" id="typical-flow">Typical flow</p>
-
-```python
-from microsandbox import Sandbox
-
-# 1. configure + 2. boot the microVM
-async with await Sandbox.create("api", image="python", memory=1024) as sb:
-    # 3. run
-    out = await sb.exec("python", ["-V"])
-    print(out.stdout_text)
-# 4. on exit the sandbox is killed and its state removed
-```
 
 ## Static methods
 
@@ -523,19 +511,24 @@ async def modify(
     max_cpus: int | None = None,
     memory: int | None = None,
     max_memory: int | None = None,
+    root_disk_size: int | None = None,
     env: Mapping[str, str] | None = None,
     env_rm: list[str] | None = None,
     labels: Mapping[str, str] | None = None,
     labels_rm: list[str] | None = None,
     workdir: str | None = None,
-    policy: str | None = None,
+    secrets: Mapping[str, SecretModifySpec] | None = None,
+    secrets_rm: list[str] | None = None,
+    policy: ModificationPolicy | None = None,
     dry_run: bool = False,
-) -> dict[str, Any]
+) -> SandboxModificationPlan
 ```
 
 <Accordion title="Example">
 
 ```python
+from microsandbox import ModificationPolicy
+
 # Live resize: applies to the running VM when within the booted capacity
 plan = await sb.modify(cpus=4, memory=4096)
 for r in plan.get("resize_status", []):
@@ -547,7 +540,24 @@ for change in plan["changes"]:
     print(f'{change["field"]}: {change["disposition"]}')
 
 # Make an env change active now by restarting
-await sb.modify(env={"MODE": "prod"}, policy="restart")
+await sb.modify(env={"MODE": "prod"}, policy=ModificationPolicy.RESTART)
+
+# Grow the managed OCI root disk offline and restart
+await sb.modify(root_disk_size=8192, policy=ModificationPolicy.RESTART)
+
+# Add or rotate a host-environment secret; restart if it is newly added
+await sb.modify(
+    secrets={
+        "API_KEY": {
+            "env": "API_KEY",
+            "allowed_hosts": ["api.example.com"],
+        },
+    },
+    policy=ModificationPolicy.RESTART,
+)
+
+# Remove an existing secret
+await sb.modify(secrets_rm=["OLD_API_KEY"])
 ```
 
 </Accordion>
@@ -555,8 +565,6 @@ await sb.modify(env={"MODE": "prod"}, policy="restart")
 Plan or apply a configuration change. The returned plan labels each change `"live"`, `"next start"`, `"requires restart"`, or `"unsupported"`, and apply is all-or-nothing.
 
 `cpus` and `memory` resize live within the `max_cpus` / `max_memory` ceilings; raising a ceiling requires a restart. Env and workdir changes affect future execs only. On a stopped sandbox, changes are saved for the next boot.
-
-Secret changes are Rust-SDK and CLI only for now. The CLI equivalent is [`msb modify`](/cli/sandbox-commands#msb-modify).
 
 The returned plan dict mirrors the canonical JSON shape:
 
@@ -1289,7 +1297,7 @@ A lightweight handle to an existing sandbox (running or stopped). Provides statu
 | refresh() | `Awaitable[`[`SandboxHandle`](#sandboxhandle)`]` | Re-fetch status and metadata, returning a fresh handle |
 | ping() | `Awaitable[`[`SandboxPingResult`](#sandboxpingresult)`]` | Check agent reachability without refreshing idle activity; does not start stopped sandboxes |
 | touch() | `Awaitable[`[`SandboxTouchResult`](#sandboxtouchresult)`]` | Explicitly refresh idle activity; does not start stopped sandboxes |
-| modify(...) | `Awaitable[dict[str, Any]]` | Plan or apply a configuration change; same kwargs as [`modify()`](#sb-modify). Does not start stopped sandboxes; changes persist for the next boot |
+| modify(...) | `Awaitable[`[`SandboxModificationPlan`](#sandboxmodificationplan)`]` | Plan or apply a configuration change; same kwargs as [`modify()`](#sb-modify). Does not start stopped sandboxes; changes persist for the next boot |
 | connect(timeout=None) | `Awaitable[`[`Sandbox`](#instance-methods)`]` | Connect to a running sandbox, optionally with an explicit timeout in seconds |
 | start(*, detached=False) | `Awaitable[`[`Sandbox`](#instance-methods)`]` | Start in attached or detached mode |
 | stop(timeout=None) | `Awaitable[None]` | Gracefully shut down and wait until stopped state is observed |
@@ -1347,13 +1355,139 @@ Observed terminal sandbox state returned by [`wait_until_stopped()`](#sb-wait_un
 
 The string status values a sandbox can report. A `StrEnum`, exposed as plain strings on `status` fields.
 
-| Value | Description |
-|-------|-------------|
-| `"running"` | Guest agent is ready; `exec`, `shell`, `fs` work |
-| `"stopped"` | VM shut down; configuration persisted; can be restarted |
-| `"crashed"` | VM exited unexpectedly (kernel panic, OOM, etc.) |
-| `"draining"` | Graceful shutdown in progress; existing commands finish, new ones rejected |
-| `"paused"` | VM paused |
+| Member | Value | Description |
+|--------|-------|-------------|
+| `SandboxStatus.CREATED` | `"created"` | Sandbox metadata exists but the VM has not started |
+| `SandboxStatus.STARTING` | `"starting"` | A start request is in progress |
+| `SandboxStatus.RUNNING` | `"running"` | Guest agent is ready; `exec`, `shell`, and `fs` work |
+| `SandboxStatus.STOPPED` | `"stopped"` | VM shut down; configuration persisted; can be restarted |
+| `SandboxStatus.CRASHED` | `"crashed"` | VM exited unexpectedly (kernel panic, OOM, etc.) |
+| `SandboxStatus.DRAINING` | `"draining"` | Graceful shutdown in progress; existing commands finish, new ones rejected |
+| `SandboxStatus.PAUSED` | `"paused"` | VM paused |
+
+### BackendKind
+
+<p className="msb-backref">Used by <code>set_default_backend()</code> · <code>backend_scope()</code> · returned by <code>default_backend_kind()</code></p>
+
+Selected sandbox backend.
+
+| Member | Value | Description |
+|--------|-------|-------------|
+| `BackendKind.LOCAL` | `"local"` | Local libkrun backend |
+| `BackendKind.CLOUD` | `"cloud"` | Microsandbox cloud backend; requires an API key or named profile |
+
+```python
+from microsandbox import BackendKind, set_default_backend
+
+set_default_backend(BackendKind.CLOUD, profile="production")
+```
+
+### ModificationPolicy
+
+<p className="msb-backref">Used by <a href="#sb-modify">modify(policy=...)</a></p>
+
+Controls how sandbox modifications that cannot apply live are handled.
+
+| Member | Value | Description |
+|--------|-------|-------------|
+| `ModificationPolicy.NO_RESTART` | `"no_restart"` | Apply only changes that do not require a restart |
+| `ModificationPolicy.NEXT_START` | `"next_start"` | Persist changes for the next start without restarting a running VM |
+| `ModificationPolicy.RESTART` | `"restart"` | Restart when required so changes become active immediately |
+
+### SecretModifySpec
+
+<p className="msb-backref">Used by <a href="#sb-modify">modify(secrets=...)</a></p>
+
+Desired state for one secret. `env`, `value`, and `store` are mutually exclusive sources. Omit all three to update only the placeholder or allowed hosts.
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `env` | `str` | Host environment variable to resolve when applying the modification |
+| `value` | `str` | Raw secret value. Stored in the durable sandbox config until replaced by a source reference |
+| `store` | `str` | Reserved for a host-side secret store reference; currently unsupported |
+| `placeholder` | `str` | Explicit guest-visible placeholder. New secrets default to `$MSB_<NAME>` |
+| `allowed_hosts` | `list[str]` | Desired allowed host patterns. A new secret requires at least one; an empty list leaves existing hosts unchanged |
+
+### SandboxModificationPlan
+
+Typed dictionary returned by `Sandbox.modify()` and `SandboxHandle.modify()`. Config changes and secret changes use different typed shapes and are discriminated by their `kind` member.
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `sandbox` | `str` | Sandbox being modified |
+| `status` | [`SandboxStatus`](#sandboxstatus) | Status used to classify the requested changes |
+| `applied` | `bool` | Whether the plan was applied |
+| `policy` | [`ModificationPolicy`](#modificationpolicy) | Policy used to produce the plan |
+| `changes` | `list[ConfigPlannedChange \| SecretPlannedChange]` | Planned changes |
+| `conflicts` | `list[ModificationConflict]` | Blocking conflicts, each with `field` and `message` |
+| `warnings` | `list[ModificationWarning]` | Non-fatal warnings, each with `field` and `message` |
+| `resize_status` | `list[ResourceResizeStatus]` | Optional live-resize convergence results |
+
+`ConfigPlannedChange` has `kind`, `field`, `change`, and `disposition`, plus optional `before`, `after`, and `reason`. `SecretPlannedChange` has `kind`, `field`, `name`, `change`, and `disposition`, plus optional `before_ref`, `after_ref`, `allow_hosts`, and `reason`. Secret values never appear in a plan.
+
+### PlannedChangeKind
+
+Discriminator for entries in `SandboxModificationPlan.changes`.
+
+| Member | Value | Description |
+|--------|-------|-------------|
+| `PlannedChangeKind.CONFIG` | `"config"` | Ordinary configuration change |
+| `PlannedChangeKind.SECRET` | `"secret"` | Secret metadata or material change |
+
+### ChangeKind
+
+Natural operation for a configuration change.
+
+| Member | Value | Description |
+|--------|-------|-------------|
+| `ChangeKind.ADDED` | `"added"` | A field is being added |
+| `ChangeKind.UPDATED` | `"updated"` | A field is being updated |
+| `ChangeKind.REMOVED` | `"removed"` | A field is being removed |
+
+### SecretChangeKind
+
+Natural operation for a secret change.
+
+| Member | Value | Description |
+|--------|-------|-------------|
+| `SecretChangeKind.ADDED` | `"added"` | A secret is being added |
+| `SecretChangeKind.ROTATED` | `"rotated"` | Secret material is being rotated |
+| `SecretChangeKind.REMOVED` | `"removed"` | A secret is being removed |
+| `SecretChangeKind.RENAMED` | `"renamed"` | A secret is being renamed |
+| `SecretChangeKind.HOSTS_UPDATED` | `"hosts updated"` | Allowed hosts are being updated |
+| `SecretChangeKind.PLACEHOLDER_UPDATED` | `"placeholder updated"` | The guest-visible placeholder is being updated |
+
+### ModificationDisposition
+
+When or whether a planned change can take effect.
+
+| Member | Value | Description |
+|--------|-------|-------------|
+| `ModificationDisposition.LIVE` | `"live"` | Applies to the running VM now |
+| `ModificationDisposition.NEXT_START` | `"next start"` | Applies the next time the sandbox starts |
+| `ModificationDisposition.REQUIRES_RESTART` | `"requires restart"` | Requires a restart before taking effect |
+| `ModificationDisposition.UNSUPPORTED` | `"unsupported"` | Cannot be changed through `modify()` |
+
+### ResourceKind
+
+Resource reported by a live-resize result.
+
+| Member | Value | Description |
+|--------|-------|-------------|
+| `ResourceKind.CPUS` | `"cpus"` | vCPU count |
+| `ResourceKind.MEMORY` | `"memory"` | Guest memory |
+
+### ResourceConvergenceState
+
+Observed convergence state for an accepted live resize.
+
+| Member | Value | Description |
+|--------|-------|-------------|
+| `ResourceConvergenceState.ACCEPTED` | `"accepted"` | Runtime accepted the request |
+| `ResourceConvergenceState.CONVERGING` | `"converging"` | Guest and VMM are still converging |
+| `ResourceConvergenceState.APPLIED` | `"applied"` | Desired, actual, and enforced values match |
+| `ResourceConvergenceState.GUEST_REFUSED` | `"guest-refused"` | Guest refused or failed to cooperate |
+| `ResourceConvergenceState.FAILED` | `"failed"` | Resize failed |
 
 ### SandboxMetrics
 
