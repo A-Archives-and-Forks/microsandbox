@@ -149,7 +149,7 @@ Sandbox::remove("api").await?;
 
 </Accordion>
 
-Delete a stopped sandbox and all its state from disk (configuration, logs, runtime directory). Fails if the sandbox is still running - stop it first.
+Delete a stopped sandbox by name. Locally, this removes the same state as [`sb.remove_persisted()`](#remove-persisted); see [Remove](/sandboxes/lifecycle#remove) for the exact deletion scope. Unlike `remove_persisted()`, this associated function routes through the default backend and also supports cloud sandboxes. Fails if the sandbox is still running—stop it first.
 
 <p className="msb-label">Parameters</p>
 
@@ -636,12 +636,13 @@ async fn remove_persisted(&self) -> MicrosandboxResult<()>
 <Accordion title="Example">
 
 ```rust
+sb.stop().await?;
 sb.remove_persisted().await?;
 ```
 
 </Accordion>
 
-Remove the sandbox and all its persisted state from disk.
+Delete this stopped sandbox's local persisted state. This is the receiver-based form to use when you still hold the `Sandbox` instance; it is local-only and has exactly the same local deletion scope as [`Sandbox::remove(name)`](#remove). It does **not** perform additional cleanup. See [Remove](/sandboxes/lifecycle#remove) for what is deleted and which external resources are preserved.
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">request_stop()</span>
 

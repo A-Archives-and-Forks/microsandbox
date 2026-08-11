@@ -293,7 +293,7 @@ result, err := sb.WaitUntilStopped(ctx)
 
 ## Remove
 
-Delete a stopped sandbox and its associated state from disk.
+Delete a stopped sandbox. Every local SDK entry point and `msb rm` uses the same deletion scope.
 
 <CodeGroup>
 ```rust Rust
@@ -317,6 +317,18 @@ msb rm worker
 ```
 
 </CodeGroup>
+
+For a local sandbox, removal deletes sandbox-owned state while leaving independently managed resources intact:
+
+| Removed | Kept |
+|---------|------|
+| Sandbox record, configuration, status, labels, and run history | Cached OCI images and layers |
+| Managed OCI writable root disk (`upper.ext4`) and its guest filesystem changes | Named volumes and their contents |
+| Captured sandbox logs | Snapshots created from the sandbox |
+| Runtime staging files, including generated scripts | Bind-mounted host files or directories |
+| Root filesystem pin metadata for this sandbox | User-supplied root disk images |
+
+Removing a sandbox does not undo writes made to a named volume, bind mount, or user-supplied disk image. On cloud, removal deletes the remote sandbox resource; the local disk details above do not apply.
 
 ## List and inspect
 
