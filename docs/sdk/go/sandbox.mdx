@@ -1272,7 +1272,7 @@ Mark whether the runtime should remove the sandbox's DB row, on-disk state, logs
 func WithEntrypoint(cmd ...string) SandboxOption
 ```
 
-Override the user-workload entrypoint baked into the image: the command the agent execs per request. This is the user workload, **not** the guest PID 1, for that, use [`WithInit`](#withinit) instead.
+Override the user-workload entrypoint baked into the image: the command the agent execs per request. This is the user workload, **not** the guest PID 1. To override the guest PID 1, use [`WithInit`](#withinit) instead.
 
 <p className="msb-label">Parameters</p>
 
