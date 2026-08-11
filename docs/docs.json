@@ -105,6 +105,7 @@
             "icon": "flag",
             "pages": [
               "sdk/overview",
+              "sdk/setup",
               "sdk/errors",
               "configuration"
             ]

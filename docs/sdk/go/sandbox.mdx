@@ -5,7 +5,7 @@ description: Go SDK - Sandbox API reference
 
 Create and control a microVM sandbox: boot it from an image, run commands, stream logs and metrics, then shut it down. See [Overview](/sandboxes/overview) for configuration examples and [Lifecycle](/sandboxes/lifecycle) for state management. Examples assume the package is imported as `m "github.com/superradcompany/microsandbox/sdk/go"`.
 
-For local sandboxes, call [`EnsureInstalled`](#m-ensureinstalled) once at process startup. It installs the `msb` + `libkrunfw` runtime into `~/.microsandbox/` when needed, is idempotent, and surfaces runtime setup failures before the first sandbox operation. Use [`IsInstalled`](#m-isinstalled) when you only need to check whether the runtime is already present.
+For local runtime installation and verification, see [Runtime setup](/sdk/setup#install-and-verify).
 
 
 ## Functions
@@ -301,87 +301,12 @@ Return a point-in-time [`Metrics`](#metrics) snapshot for every running sandbox,
   </div>
 </div>
 
-#### <span className="msb-recv">m.</span><span className="msb-hn">EnsureInstalled()</span>
+<span id="m-ensureinstalled"></span>
+<span id="m-isinstalled"></span>
+<span id="m-sdkversion"></span>
+<span id="m-runtimeversion"></span>
 
-```go
-func EnsureInstalled(ctx context.Context, opts ...SetupOption) error
-```
-
-<Accordion title="Example">
-
-```go
-if err := m.EnsureInstalled(ctx); err != nil {
-    log.Fatalf("microsandbox setup: %v", err)
-}
-```
-
-</Accordion>
-
-Ensure `msb` + `libkrunfw` are present under `~/.microsandbox/` (`%USERPROFILE%\.microsandbox` on Windows), downloading them from the matching GitHub release if needed. Call this at process startup when the program will create local sandboxes so runtime download/setup failures surface before the first sandbox operation. The Go FFI library is embedded in the Go binary and loads automatically on first use; `EnsureInstalled` only governs the `msb` + `libkrunfw` runtime install. Idempotent; options apply only to the first call.
-
-<p className="msb-label">Parameters</p>
-
-<div className="msb-params">
-  <div className="msb-param">
-    <div className="msb-param-key"><code>ctx</code><span className="msb-type">context.Context</span></div>
-    <div className="msb-param-desc">Cancels an in-flight msb + libkrunfw download.</div>
-  </div>
-  <div className="msb-param">
-    <div className="msb-param-key"><code>opts</code><a className="msb-type" href="#setupoption">...SetupOption</a></div>
-    <div className="msb-param-desc">Install knobs, e.g. <a href="#withskipdownload">WithSkipDownload()</a>.</div>
-  </div>
-</div>
-
-#### <span className="msb-recv">m.</span><span className="msb-hn">IsInstalled()</span>
-
-```go
-func IsInstalled() bool
-```
-
-Report whether `msb` + `libkrunfw` are present on disk at the SDK's pinned version. Use this when you only need to check whether the runtime is already available at the SDK install location. Does **not** dlopen the FFI library, which ships embedded.
-
-<p className="msb-label">Returns</p>
-
-<div className="msb-params">
-  <div className="msb-param">
-    <div className="msb-param-key"><span className="msb-type">bool</span></div>
-    <div className="msb-param-desc"><code>true</code> if the runtime is present at the expected version.</div>
-  </div>
-</div>
-
-#### <span className="msb-recv">m.</span><span className="msb-hn">SDKVersion()</span>
-
-```go
-func SDKVersion() string
-```
-
-Return the microsandbox release version this SDK was compiled against.
-
-<p className="msb-label">Returns</p>
-
-<div className="msb-params">
-  <div className="msb-param">
-    <div className="msb-param-key"><span className="msb-type">string</span></div>
-    <div className="msb-param-desc">Pinned release version for this SDK build.</div>
-  </div>
-</div>
-
-#### <span className="msb-recv">m.</span><span className="msb-hn">RuntimeVersion()</span>
-
-```go
-func RuntimeVersion() (string, error)
-```
-
-Return the version reported by the loaded FFI library. Auto-loads the library on first use; returns an error with `Kind == ErrLibraryNotLoaded` only if loading fails (e.g. unsupported platform or GLIBC mismatch).
-
-<p className="msb-label">Returns</p>
-
-<div className="msb-params">
-  <div className="msb-param">
-    <div className="msb-param-key"><span className="msb-type">string</span></div>
-    <div className="msb-param-desc">FFI library version.</div>
-  </div>
-</div>
+Runtime installation and verification helpers are documented under [Runtime setup](/sdk/setup#install-and-verify). The Go-only version helpers are under [Inspect Go versions](/sdk/setup#inspect-go-versions).
 
 ## Methods
 
@@ -1694,13 +1619,9 @@ Set how long [`Kill`](#sb-kill) waits for stopped-state observation. Default: 5 
   </div>
 </div>
 
-#### <span className="msb-recv"></span><span className="msb-hn">WithSkipDownload()</span>
+<span id="withskipdownload"></span>
 
-```go
-func WithSkipDownload() SetupOption
-```
-
-Prevent [`EnsureInstalled`](#m-ensureinstalled) from fetching the msb + libkrunfw bundle from GitHub. Use when the runtime is already on disk at the install path (e.g. air-gapped CI). The embedded FFI library is unaffected. This is a [`SetupOption`](#setupoption), pass it to `EnsureInstalled`.
+The setup-only `WithSkipDownload()` option is documented under [Runtime setup](/sdk/setup#customize-installation).
 
 ## Patch
 
@@ -2441,12 +2362,6 @@ Package-level factory namespace for [`PatchConfig`](#patchconfig) values. See th
 | [`CopyFile(src, dst, opts)`](#patch-copyfile) | [`PatchConfig`](#patchconfig) | Copy a host file into the rootfs |
 | [`CopyDir(src, dst, opts)`](#patch-copydir) | [`PatchConfig`](#patchconfig) | Copy a host directory into the rootfs |
 
-### SetupOption
+<span id="setupoption"></span>
 
-<p className="msb-backref">Consumed by <a href="#m-ensureinstalled">EnsureInstalled()</a></p>
-
-```go
-type SetupOption func(*setupConfig)
-```
-
-A functional option for [`EnsureInstalled`](#m-ensureinstalled). The only helper is [`WithSkipDownload`](#withskipdownload).
+The setup-only `SetupOption` type is documented under [Runtime setup](/sdk/setup#customize-installation).
