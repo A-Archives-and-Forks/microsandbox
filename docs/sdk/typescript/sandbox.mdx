@@ -7,8 +7,17 @@ Create and control a microVM sandbox: boot it from an image, run commands, strea
 
 The TypeScript SDK uses a **builder-only** entry point. Start every new sandbox from `Sandbox.builder(name)` and chain configuration calls before terminating with `.create()`. Use `.detached(true)` before `.create()` for detached/background mode. Sandbox names must be non-empty and no longer than 128 UTF-8 bytes.
 
-`libkrunfw` selection is process-level, not per sandbox. To use a custom library, call `setRuntimeLibkrunfwPath(path)` before creating local sandboxes, set `MSB_LIBKRUNFW_PATH`, or configure `paths.libkrunfw`.
+`libkrunfw` selection is process-level, not per sandbox. See [Runtime setup](/sdk/setup#override-runtime-paths) for installation, verification, and path overrides.
 
+## Functions
+
+#### <span className="msb-hn">allSandboxMetrics()</span>
+
+```typescript
+allSandboxMetrics(): Promise<Record<string, SandboxMetrics>>
+```
+
+Return one [`SandboxMetrics`](#sandboxmetrics) snapshot for every running sandbox, keyed by sandbox name. See [Metrics](/sandboxes/metrics) for a complete example.
 
 ## Static methods
 
@@ -167,7 +176,7 @@ await Sandbox.remove("api");
 
 </Accordion>
 
-Delete a stopped sandbox and all its state from disk (configuration, logs, runtime directory). Fails if the sandbox is still running - stop it first.
+Delete a stopped sandbox by name. See [Remove](/sandboxes/lifecycle#remove) for the exact local deletion scope and the external resources that are preserved. Fails if the sandbox is still running—stop it first.
 
 <p className="msb-label">Parameters</p>
 
@@ -1529,7 +1538,7 @@ Suppress sandbox process log output.
 <Tooltip tip="On microsandbox cloud, plain-HTTP and custom-CA registry options are not available; credential auth still works."><span className="msb-badge-limited">Limited on cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```typescript
-registry(configure: (b: RegistryBuilder) => RegistryBuilder): this
+registry(configure: (b: RegistryConfigBuilder) => RegistryConfigBuilder): this
 ```
 
 <Accordion title="Example">
@@ -1537,7 +1546,9 @@ registry(configure: (b: RegistryBuilder) => RegistryBuilder): this
 ```typescript
 const sandbox = await Sandbox.builder("worker")
   .image("registry.internal/app:latest")
-  .registry((r) => r.auth("user", "token"))
+  .registry((r) =>
+    r.auth({ kind: "basic", username: "user", password: "token" }),
+  )
   .create();
 ```
 
@@ -1549,8 +1560,8 @@ Configure the OCI registry connection: authentication, insecure transport, and C
 
 <div className="msb-params">
   <div className="msb-param">
-    <div className="msb-param-key"><code>configure</code><span className="msb-type">(b: RegistryBuilder) =&gt; RegistryBuilder</span></div>
-    <div className="msb-param-desc">Configure the registry.</div>
+    <div className="msb-param-key"><code>configure</code><a className="msb-type" href="#registryconfigbuilder">(b: RegistryConfigBuilder) =&gt; RegistryConfigBuilder</a></div>
+    <div className="msb-param-desc">Configure registry authentication, transport, and CA certificates.</div>
   </div>
 </div>
 
@@ -2189,6 +2200,48 @@ Async iterable creation handle returned by [`createWithPullProgress()`](#createw
 | `[Symbol.asyncIterator]()` | `AsyncIterator<`[`PullProgress`](#pullprogress)`>` | Use with `for await...of` |
 | `awaitSandbox()` | `Promise<`[`Sandbox`](#instance-methods)`>` | Resolve the underlying creation task and return the running sandbox |
 
+### RegistryAuth
+
+Authentication used when pulling images from an OCI registry.
+
+```typescript
+type RegistryAuth =
+  | { kind: "anonymous" }
+  | { kind: "basic"; username: string; password: string };
+```
+
+### RegistryConfigBuilder
+
+Fluent builder for OCI registry connection settings. Obtain it through [`SandboxBuilder.registry()`](#registry); the callback's returned builder is stored in the sandbox configuration.
+
+```typescript
+.registry((r) =>
+  r.auth({ kind: "basic", username: "user", password: "token" })
+    .caCertsPath("/etc/company-registry-ca.pem"),
+)
+```
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `auth(auth)` | `this` | Set [`RegistryAuth`](#registryauth) credentials. |
+| `insecure()` | `this` | Use plain HTTP instead of TLS. |
+| `caCerts(pemData)` | `this` | Add a PEM-encoded CA certificate from a Node.js `Buffer`. May be called repeatedly. |
+| `caCertsPath(path)` | `this` | Read and add a PEM-encoded CA certificate from a filesystem path. |
+| `build()` | [`RegistryConfig`](#registryconfig) | Snapshot the accumulated registry configuration. |
+
+### RegistryConfig
+
+<p className="msb-backref">Built by <a href="#registryconfigbuilder">RegistryConfigBuilder</a> · stored in <a href="#sandboxconfig">SandboxConfig.registry</a></p>
+
+OCI registry connection settings produced by [`RegistryConfigBuilder.build()`](#registryconfigbuilder).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| auth | [`RegistryAuth`](#registryauth)` \| undefined` | Registry authentication, if configured. |
+| insecure | `boolean` | Whether to use plain HTTP instead of TLS. |
+| caCertsCount | `number` | Number of CA certificates added through `caCerts()` or `caCertsPath()`. |
+| caCertsPath | `string \| undefined` | Last CA certificate path passed to `caCertsPath()`, if any. |
+
 ### SandboxConfig
 
 <p className="msb-backref">Returned by <a href="#sandbox-config">config()</a> · <a href="#build">build()</a></p>
@@ -2223,7 +2276,7 @@ Configuration object produced by [`build()`](#build) and returned by [`config()`
 | idleTimeoutSecs | `number \| null` | Stop after idle time |
 | portsTcp | `Array<readonly [number, number]>` | TCP host→guest mappings |
 | portsUdp | `Array<readonly [number, number]>` | UDP host→guest mappings |
-| registry | `RegistryConfig \| null` | Registry connection settings |
+| registry | [`RegistryConfig`](#registryconfig)` \| null` | Registry connection settings |
 | network | `NetworkConfig \| null` | Network configuration |
 | disableNetwork | `boolean` | Disable networking entirely |
 | secrets | `SecretEntry[]` | Secret entries (top-level) |

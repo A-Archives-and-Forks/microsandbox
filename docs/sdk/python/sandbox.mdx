@@ -5,6 +5,7 @@ description: Python SDK - Sandbox API reference
 
 Create and control a microVM sandbox: boot it from an image, run commands, stream logs and metrics, then shut it down. See [Overview](/sandboxes/overview) for configuration examples and [Lifecycle](/sandboxes/lifecycle) for state management.
 
+For local runtime installation and verification, see [Runtime setup](/sdk/setup#install-and-verify).
 
 ## Static methods
 
@@ -267,7 +268,7 @@ await Sandbox.remove("api")
 
 </Accordion>
 
-Delete a stopped sandbox and all its state from disk (configuration, logs, runtime directory). Fails if the sandbox is still running; stop it first.
+Delete a stopped sandbox by name. See [Remove](/sandboxes/lifecycle#remove) for the exact local deletion scope and the external resources that are preserved. Fails if the sandbox is still running; stop it first.
 
 <p className="msb-label">Parameters</p>
 
