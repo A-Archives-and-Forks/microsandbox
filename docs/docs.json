@@ -38,6 +38,7 @@
             "icon": "box",
             "pages": [
               "sandboxes/overview",
+              "sandbox-config",
               "sandboxes/cpu-placement",
               "sandboxes/lifecycle",
               "sandboxes/commands",
