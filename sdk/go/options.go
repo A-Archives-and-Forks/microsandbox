@@ -32,6 +32,7 @@ type SandboxConfig struct {
 	MaxMemoryMiB      uint32
 	MaxCPUs           uint8
 	CPUPlacement      CPUPlacement
+	PlacementProfile  string
 	THP               THPPolicy
 	Workdir           string
 	Shell             string
@@ -101,6 +102,7 @@ type persistedSandboxConfig struct {
 	MaxMemoryMiB      uint32               `json:"max_memory_mib"`
 	MaxCPUs           uint8                `json:"max_cpus"`
 	CPUPlacement      CPUPlacement         `json:"cpu_placement"`
+	PlacementProfile  string               `json:"placement_profile"`
 	Resources         *persistedResources  `json:"resources"`
 	Runtime           *persistedRuntime    `json:"runtime"`
 	Workdir           string               `json:"workdir"`
@@ -129,12 +131,13 @@ type persistedInitConfig struct {
 }
 
 type persistedResources struct {
-	CPUs         uint8        `json:"cpus"`
-	MemoryMiB    uint32       `json:"memory_mib"`
-	MaxCPUs      uint8        `json:"max_cpus"`
-	MaxMemoryMiB uint32       `json:"max_memory_mib"`
-	CPUPlacement CPUPlacement `json:"cpu_placement"`
-	THP          THPPolicy    `json:"thp"`
+	CPUs             uint8        `json:"cpus"`
+	MemoryMiB        uint32       `json:"memory_mib"`
+	MaxCPUs          uint8        `json:"max_cpus"`
+	MaxMemoryMiB     uint32       `json:"max_memory_mib"`
+	CPUPlacement     CPUPlacement `json:"cpu_placement"`
+	PlacementProfile string       `json:"placement_profile"`
+	THP              THPPolicy    `json:"thp"`
 }
 
 type persistedRuntime struct {
@@ -210,6 +213,7 @@ func (c *SandboxConfig) UnmarshalJSON(data []byte) error {
 		MaxMemoryMiB:      raw.maxMemoryMiB(),
 		MaxCPUs:           raw.maxCPUs(),
 		CPUPlacement:      raw.cpuPlacement(),
+		PlacementProfile:  raw.placementProfile(),
 		THP:               raw.thp(),
 		Workdir:           runtime.Workdir,
 		Shell:             runtime.Shell,
@@ -282,6 +286,13 @@ func (c persistedSandboxConfig) cpuPlacement() CPUPlacement {
 		return c.CPUPlacement
 	}
 	return CPUPlacementInherit
+}
+
+func (c persistedSandboxConfig) placementProfile() string {
+	if c.Resources != nil && c.Resources.PlacementProfile != "" {
+		return c.Resources.PlacementProfile
+	}
+	return c.PlacementProfile
 }
 
 func (c persistedSandboxConfig) thp() THPPolicy {
@@ -675,6 +686,11 @@ func WithMaxCPUs(cpus uint8) SandboxOption {
 // WithCPUPlacement selects the host placement policy for sandbox vCPU threads.
 func WithCPUPlacement(policy CPUPlacement) SandboxOption {
 	return func(o *SandboxConfig) { o.CPUPlacement = policy }
+}
+
+// WithPlacementProfile selects a host-defined placement profile by name.
+func WithPlacementProfile(profile string) SandboxOption {
+	return func(o *SandboxConfig) { o.PlacementProfile = profile }
 }
 
 // WithTHP selects the guest transparent huge-page policy applied at boot.
