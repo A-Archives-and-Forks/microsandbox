@@ -1493,6 +1493,8 @@ export declare class Snapshot {
   get upperFile(): string | null
   get upperIntegrityAlgorithm(): string | null
   get upperIntegrityDigest(): string | null
+  get upperIntegrityLogicalSize(): bigint | null
+  get upperIntegrityLeafSize(): number | null
   get checkpointId(): string | null
   get checkpointManifestDigest(): string | null
   get parent(): string | null
@@ -2358,8 +2360,8 @@ export interface SnapshotRemoveOptions {
 /**
  * Result of `Snapshot.verify()`.
  *
- * `upperKind` is `"verified"` when the mandatory file-state integrity
- * matched. `upperAlgorithm` and `upperDigest` carry the verified binding.
+ * `upperKind` is `"notRecorded"` when integrity is absent or `"verified"`
+ * when the recorded value matched. The other fields carry that binding.
  */
 export interface SnapshotVerifyReport {
   digest: string

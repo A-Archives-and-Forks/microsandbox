@@ -575,6 +575,8 @@ export interface NapiSnapshot {
   readonly upperFile: string | null | undefined;
   readonly upperIntegrityAlgorithm: string | null | undefined;
   readonly upperIntegrityDigest: string | null | undefined;
+  readonly upperIntegrityLogicalSize: bigint | null | undefined;
+  readonly upperIntegrityLeafSize: number | null | undefined;
   readonly checkpointId: string | null | undefined;
   readonly checkpointManifestDigest: string | null | undefined;
   readonly parent: string | null | undefined;
@@ -638,7 +640,7 @@ export interface NapiSnapshotRemoveOptions {
 export interface NapiSnapshotVerifyReport {
   readonly digest: string;
   readonly path: string;
-  readonly upperKind: string; // "verified"
+  readonly upperKind: string; // "notRecorded" | "verified"
   readonly upperAlgorithm: string | null | undefined;
   readonly upperDigest: string | null | undefined;
 }
