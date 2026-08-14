@@ -716,6 +716,8 @@ Set the network access policy. Pass a profile-composed or builder-constructed [`
 
 #### <span className="msb-recv">.</span><span className="msb-hn">port()</span>
 
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 <a id="nb-port"></a>
 
 ```rust
@@ -739,6 +741,8 @@ Publish a TCP port from the sandbox to the host. The default host bind address i
 
 #### <span className="msb-recv">.</span><span className="msb-hn">port_udp()</span>
 
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 fn port_udp(self, host_port: u16, guest_port: u16) -> Self
 ```
@@ -746,6 +750,8 @@ fn port_udp(self, host_port: u16, guest_port: u16) -> Self
 Publish a UDP port. The default host bind address is `127.0.0.1`.
 
 #### <span className="msb-recv">.</span><span className="msb-hn">port_bind()</span>
+
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 fn port_bind(self, host_bind: IpAddr, host_port: u16, guest_port: u16) -> Self
@@ -772,6 +778,8 @@ Publish a TCP port on a specific host bind address, such as `0.0.0.0`.
 
 #### <span className="msb-recv">.</span><span className="msb-hn">port_udp_bind()</span>
 
+<Tooltip tip="Publishing host ports is not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 fn port_udp_bind(self, host_bind: IpAddr, host_port: u16, guest_port: u16) -> Self
 ```
@@ -779,6 +787,8 @@ fn port_udp_bind(self, host_bind: IpAddr, host_port: u16, guest_port: u16) -> Se
 Publish a UDP port on a specific host bind address.
 
 #### <span className="msb-recv">.</span><span className="msb-hn">dns()</span>
+
+<Tooltip tip="Custom nameservers are not available on microsandbox cloud; cloud uses platform-managed DNS."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 fn dns(self, f: impl FnOnce(DnsBuilder) -> DnsBuilder) -> Self
@@ -801,6 +811,8 @@ Configure DNS interception. See [`DnsBuilder`](#dnsbuilder).
 
 #### <span className="msb-recv">.</span><span className="msb-hn">tls()</span>
 
+<Tooltip tip="TLS interception and host-CA trust are not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 fn tls(self, f: impl FnOnce(TlsBuilder) -> TlsBuilder) -> Self
 ```
@@ -808,6 +820,8 @@ fn tls(self, f: impl FnOnce(TlsBuilder) -> TlsBuilder) -> Self
 Configure TLS interception. See [`TlsBuilder`](#tlsbuilder).
 
 #### <span className="msb-recv">.</span><span className="msb-hn">trust_host_cas()</span>
+
+<Tooltip tip="TLS interception and host-CA trust are not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 fn trust_host_cas(self, enabled: bool) -> Self
@@ -834,6 +848,8 @@ Limit the maximum number of concurrent network connections from the sandbox. Def
 
 #### <span className="msb-recv">.</span><span className="msb-hn">ipv4_pool()</span>
 
+<Tooltip tip="Interface and IP-pool overrides are not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 fn ipv4_pool(self, pool: Ipv4Network) -> Self
 ```
@@ -851,6 +867,8 @@ Set the IPv4 pool used to derive per-sandbox `/30` guest subnets. Defaults to `1
 
 #### <span className="msb-recv">.</span><span className="msb-hn">ipv6_pool()</span>
 
+<Tooltip tip="Interface and IP-pool overrides are not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 fn ipv6_pool(self, pool: Ipv6Network) -> Self
 ```
@@ -858,6 +876,8 @@ fn ipv6_pool(self, pool: Ipv6Network) -> Self
 Set the IPv6 pool used to derive per-sandbox `/64` guest prefixes. Defaults to `fd42:6d73:62::/48`. A pool with a prefix longer than `/64` records [`BuildError::InvalidIpv6Pool`](#builderror).
 
 #### <span className="msb-recv">.</span><span className="msb-hn">interface()</span>
+
+<Tooltip tip="Interface and IP-pool overrides are not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 fn interface(self, overrides: InterfaceOverrides) -> Self
@@ -929,6 +949,8 @@ Builder for DNS interception, used in [`NetworkBuilder::dns(|d| d...)`](#dns). O
 
 #### <span className="msb-recv">.</span><span className="msb-hn">nameservers()</span>
 
+<Tooltip tip="Custom nameservers are not available on microsandbox cloud; cloud uses platform-managed DNS."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 fn nameservers<I>(self, nameservers: I) -> Self
 where
@@ -986,6 +1008,8 @@ Skip TLS interception for hosts matching this glob (e.g. `"*.internal.corp"`). U
 
 #### <span className="msb-recv">.</span><span className="msb-hn">intercepted_ports()</span>
 
+<Tooltip tip="TLS interception and host-CA trust are not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 fn intercepted_ports(self, ports: Vec<u16>) -> Self
 ```
@@ -1010,6 +1034,8 @@ Block QUIC/HTTP3 on intercepted ports, forcing TCP/TLS fallback. Default: `true`
 
 #### <span className="msb-recv">.</span><span className="msb-hn">intercept_ca_cert()</span>
 
+<Tooltip tip="TLS interception and host-CA trust are not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
 ```rust
 fn intercept_ca_cert(self, path: impl Into<PathBuf>) -> Self
 ```
@@ -1017,6 +1043,8 @@ fn intercept_ca_cert(self, path: impl Into<PathBuf>) -> Self
 PEM file used as the intercepting CA's certificate. Pair with [`intercept_ca_key()`](#intercept_ca_key) to provide a stable CA across sandbox restarts. If unset, a CA is auto-generated and persisted.
 
 #### <span className="msb-recv">.</span><span className="msb-hn">intercept_ca_key()</span>
+
+<Tooltip tip="TLS interception and host-CA trust are not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
 ```rust
 fn intercept_ca_key(self, path: impl Into<PathBuf>) -> Self
