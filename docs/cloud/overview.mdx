@@ -8,15 +8,16 @@ icon: "cloud"
   microsandbox cloud is in **private beta**, and currently requires you to explicitly [request access](https://dashboard.microsandbox.dev/signup). If you already have access, you can get your API key from the [dashboard](https://dashboard.microsandbox.dev/access/api-keys).
 </Note>
 
-microsandbox cloud runs your sandboxes on hosted infrastructure. The SDKs and the `msb` CLI are the same ones you use locally: the same builders, the same commands, the same code. An API key is the only thing that changes; there is no URL, daemon, or extra configuration.
+microsandbox cloud runs your sandboxes on hosted infrastructure. The SDKs and the `msb` CLI are the same ones you use locally: the same builders, the same commands, the same code. Select the cloud backend and provide an API key; there is no daemon or separate client.
 
 ```bash
+export MSB_BACKEND=cloud
 export MSB_API_KEY="msb_..."
 ```
 
 ## Same code, different backend
 
-Everything from the [quickstart](/getting-started/quickstart) works unchanged. With the API key exported, this creates a sandbox on cloud instead of your machine:
+Everything from the [quickstart](/getting-started/quickstart) works unchanged. With cloud selected and the API key exported, this creates a sandbox on cloud instead of your machine:
 
 <CodeGroup>
 ```rust Rust

@@ -2,6 +2,8 @@ package microsandbox
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -263,6 +265,21 @@ func TestFFIWireShape_WithRootDiskImage(t *testing.T) {
 	}
 }
 
+func TestFFIWireShape_WithRootDiskFlat(t *testing.T) {
+	got := marshalCreateOptions(t,
+		WithImage("python:3.12"),
+		WithRootDisk(RootDisk.Flat(RootDiskFlatOptions{
+			SizeMiB: 8192,
+			Fstype:  "ext4",
+			Clone:   FlatCloneReflink,
+		})),
+	)
+	rd := mustField(t, got, "root_disk").(map[string]any)
+	if rd["kind"] != "flat" || rd["size_mib"] != float64(8192) || rd["fstype"] != "ext4" || rd["clone"] != "reflink" {
+		t.Fatalf("root_disk = %v, want flat ext4 reflink fields", rd)
+	}
+}
+
 func TestFFIWireShape_WithOCIUpperSize(t *testing.T) {
 	got := marshalCreateOptions(t, WithImage("python:3.12"), WithOCIUpperSize(8192))
 	rd := mustField(t, got, "root_disk").(map[string]any)
@@ -310,6 +327,8 @@ func TestFFIWireShape_ScalarKnobs(t *testing.T) {
 		WithCPUs(2),
 		WithMaxMemory(4096),
 		WithMaxCPUs(8),
+		WithCPUPlacement(CPUPlacementSpread),
+		WithPlacementProfile("latency"),
 		WithWorkdir("/app"),
 		WithShell("/bin/bash"),
 		WithHostname("sb"),
@@ -328,6 +347,8 @@ func TestFFIWireShape_ScalarKnobs(t *testing.T) {
 		want any
 	}{
 		{"image", "alpine"},
+		{"cpu_placement", "spread"},
+		{"placement_profile", "latency"},
 		{"memory_mib", float64(512)},
 		{"cpus", float64(2)},
 		{"max_memory_mib", float64(4096)},
@@ -375,6 +396,24 @@ func TestFFIWireShape_ReplaceWithTimeoutMs(t *testing.T) {
 	}
 	if v != float64(0) {
 		t.Fatalf("replace_with_timeout_ms = %v, want 0", v)
+	}
+}
+
+func TestFFIWireShape_CommandOverridesPreserveExplicitClear(t *testing.T) {
+	got := marshalCreateOptions(t, WithEntrypoint("python", "-u"), WithCmd("worker.py"))
+	if entrypoint := mustField(t, got, "entrypoint").([]any); len(entrypoint) != 2 {
+		t.Fatalf("entrypoint = %v", entrypoint)
+	}
+	if cmd := mustField(t, got, "cmd").([]any); len(cmd) != 1 || cmd[0] != "worker.py" {
+		t.Fatalf("cmd = %v", cmd)
+	}
+
+	cleared := marshalCreateOptions(t, WithEntrypoint(), WithCmd())
+	if entrypoint := mustField(t, cleared, "entrypoint").([]any); len(entrypoint) != 0 {
+		t.Fatalf("cleared entrypoint = %v", entrypoint)
+	}
+	if cmd := mustField(t, cleared, "cmd").([]any); len(cmd) != 0 {
+		t.Fatalf("cleared cmd = %v", cmd)
 	}
 }
 
@@ -429,6 +468,28 @@ func TestFFIWireShape_Ports(t *testing.T) {
 	}
 }
 
+func TestFFIWireShape_Vsock(t *testing.T) {
+	got := marshalCreateOptions(t,
+		WithImage("alpine"),
+		WithVsock(
+			VsockRoute{HostSocket: "/run/host-api.sock", Port: 5000},
+			VsockRoute{HostSocket: "/run/events.sock", Port: 5001, SocketType: VsockSocketTypeDgram},
+		),
+	)
+	routes := mustField(t, got, "vsock").([]any)
+	stream := routes[0].(map[string]any)
+	dgram := routes[1].(map[string]any)
+	if stream["host_socket"] != "/run/host-api.sock" || stream["port"] != float64(5000) {
+		t.Fatalf("stream vsock route = %v", stream)
+	}
+	if _, present := stream["socket_type"]; present {
+		t.Fatalf("default stream type should be omitted: %v", stream)
+	}
+	if dgram["socket_type"] != "dgram" || dgram["port"] != float64(5001) {
+		t.Fatalf("datagram vsock route = %v", dgram)
+	}
+}
+
 func TestFFIWireShape_RegistryAuth(t *testing.T) {
 	got := marshalCreateOptions(t,
 		WithImage("private.example.com/img"),
@@ -437,6 +498,55 @@ func TestFFIWireShape_RegistryAuth(t *testing.T) {
 	ra := mustField(t, got, "registry_auth").(map[string]any)
 	if ra["username"] != "u" || ra["password"] != "p" {
 		t.Fatalf("registry_auth = %v", ra)
+	}
+}
+
+func TestFFIWireShape_RegistryOverrides(t *testing.T) {
+	got := marshalCreateOptions(t,
+		WithImage("localhost:5050/img"),
+		WithRegistryInsecure(),
+		WithRegistryCACerts([]byte("pem-one")),
+		WithRegistryCACerts([]byte("pem-two")),
+	)
+	if got["registry_insecure"] != true {
+		t.Fatalf("registry_insecure = %v", got["registry_insecure"])
+	}
+	certs := mustField(t, got, "registry_ca_certs").([]any)
+	if len(certs) != 2 || certs[0] != "pem-one" || certs[1] != "pem-two" {
+		t.Fatalf("registry_ca_certs = %v", certs)
+	}
+}
+
+func TestResolveRegistryCACertPaths(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "ca.pem")
+	if err := os.WriteFile(path, []byte("pem-from-file"), 0o600); err != nil {
+		t.Fatalf("write ca.pem: %v", err)
+	}
+
+	cfg := SandboxConfig{}
+	WithRegistryCACerts([]byte("pem-inline"))(&cfg)
+	WithRegistryCACertsPath(path)(&cfg)
+	if err := resolveRegistryCACertPaths(&cfg); err != nil {
+		t.Fatalf("resolveRegistryCACertPaths: %v", err)
+	}
+	if len(cfg.RegistryCACerts) != 2 ||
+		string(cfg.RegistryCACerts[0]) != "pem-inline" ||
+		string(cfg.RegistryCACerts[1]) != "pem-from-file" {
+		t.Fatalf("RegistryCACerts = %q", cfg.RegistryCACerts)
+	}
+}
+
+func TestResolveRegistryCACertPathsMissingFile(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "nope.pem")
+	cfg := SandboxConfig{}
+	WithRegistryCACertsPath(missing)(&cfg)
+	err := resolveRegistryCACertPaths(&cfg)
+	if err == nil {
+		t.Fatal("resolveRegistryCACertPaths: got nil error for a missing file")
+	}
+	if !strings.Contains(err.Error(), missing) {
+		t.Errorf("error %q does not mention the path %q", err, missing)
 	}
 }
 
@@ -521,6 +631,16 @@ func TestFFIWireShape_SecurityProfile(t *testing.T) {
 	)
 	if got["security_profile"] != "restricted" {
 		t.Fatalf("security_profile = %v", got["security_profile"])
+	}
+}
+
+func TestFFIWireShape_DeploymentProfile(t *testing.T) {
+	got := marshalCreateOptions(t,
+		WithImage("alpine"),
+		WithDeploymentProfile(DeploymentProfileMultiTenant),
+	)
+	if got["deployment_profile"] != "multi-tenant" {
+		t.Fatalf("deployment_profile = %v", got["deployment_profile"])
 	}
 }
 
@@ -619,6 +739,122 @@ func TestFFIWireShape_NetworkCustomRules(t *testing.T) {
 	}
 }
 
+func TestBuildFFINetworkRateLimiters(t *testing.T) {
+	out := buildFFINetwork(&NetworkConfig{
+		RateLimiter: &NetworkRateLimiterConfig{
+			Egress: &RateLimiterConfig{
+				Bandwidth: &TokenBucketConfig{
+					Size:         1 << 20,
+					RefillTime:   time.Second,
+					OneTimeBurst: 512 << 10,
+				},
+				Ops: &TokenBucketConfig{Size: 1000, RefillTime: 100 * time.Millisecond},
+			},
+			Ingress: &RateLimiterConfig{
+				Bandwidth: &TokenBucketConfig{Size: 2 << 20, RefillTime: 500 * time.Millisecond},
+			},
+		},
+	})
+
+	egress := out.RateLimiter.Egress
+	if egress == nil || egress.Bandwidth == nil || egress.Ops == nil {
+		t.Fatalf("egress rate limiter = %+v", egress)
+	}
+	if egress.Bandwidth.Size != 1<<20 || egress.Bandwidth.RefillTimeMs != 1000 {
+		t.Fatalf("egress bandwidth = %+v", egress.Bandwidth)
+	}
+	if egress.Bandwidth.OneTimeBurst != 512<<10 {
+		t.Fatalf("egress bandwidth burst = %d", egress.Bandwidth.OneTimeBurst)
+	}
+	if egress.Ops.Size != 1000 || egress.Ops.RefillTimeMs != 100 || egress.Ops.OneTimeBurst != 0 {
+		t.Fatalf("egress ops = %+v", egress.Ops)
+	}
+
+	ingress := out.RateLimiter.Ingress
+	if ingress == nil || ingress.Bandwidth == nil {
+		t.Fatalf("ingress rate limiter = %+v", ingress)
+	}
+	if ingress.Ops != nil {
+		t.Fatalf("ingress ops should stay nil, got %+v", ingress.Ops)
+	}
+	if ingress.Bandwidth.Size != 2<<20 || ingress.Bandwidth.RefillTimeMs != 500 {
+		t.Fatalf("ingress bandwidth = %+v", ingress.Bandwidth)
+	}
+}
+
+func TestBuildFFINetworkRateLimitersNil(t *testing.T) {
+	out := buildFFINetwork(&NetworkConfig{})
+	if out.RateLimiter != nil {
+		t.Fatalf("nil rate limiters should stay nil: %+v", out)
+	}
+}
+
+func TestBuildFFITokenBucketKeepsInvalidRefillTimesInvalid(t *testing.T) {
+	for _, refillTime := range []time.Duration{
+		-time.Second,
+		0,
+		time.Microsecond,
+		1500 * time.Microsecond,
+	} {
+		out := buildFFITokenBucket(&TokenBucketConfig{Size: 1, RefillTime: refillTime})
+		if out.RefillTimeMs != 0 {
+			t.Fatalf("refill time %s became %dms", refillTime, out.RefillTimeMs)
+		}
+	}
+
+	out := buildFFITokenBucket(&TokenBucketConfig{Size: 1, RefillTime: time.Millisecond})
+	if out.RefillTimeMs != 1 {
+		t.Fatalf("1ms refill time became %dms", out.RefillTimeMs)
+	}
+}
+
+func TestFFIWireShape_NetworkRateLimiters(t *testing.T) {
+	got := marshalCreateOptions(t,
+		WithImage("alpine"),
+		WithNetwork(&NetworkConfig{
+			RateLimiter: &NetworkRateLimiterConfig{
+				Egress: &RateLimiterConfig{
+					Bandwidth: &TokenBucketConfig{
+						Size:         1 << 20,
+						RefillTime:   time.Second,
+						OneTimeBurst: 512 << 10,
+					},
+				},
+				Ingress: &RateLimiterConfig{
+					Ops: &TokenBucketConfig{Size: 1000, RefillTime: 100 * time.Millisecond},
+				},
+			},
+		}),
+	)
+	net := mustField(t, got, "network").(map[string]any)
+	rateLimiter := net["rate_limiter"].(map[string]any)
+
+	egress := rateLimiter["egress"].(map[string]any)
+	bw := egress["bandwidth"].(map[string]any)
+	if bw["size"] != float64(1<<20) || bw["refill_time_ms"] != float64(1000) {
+		t.Fatalf("egress bandwidth = %v", bw)
+	}
+	if bw["one_time_burst"] != float64(512<<10) {
+		t.Fatalf("egress bandwidth burst = %v", bw["one_time_burst"])
+	}
+	if _, present := egress["ops"]; present {
+		t.Fatalf("nil ops bucket should be omitted: %v", egress)
+	}
+
+	ingress := rateLimiter["ingress"].(map[string]any)
+	ops := ingress["ops"].(map[string]any)
+	if ops["size"] != float64(1000) || ops["refill_time_ms"] != float64(100) {
+		t.Fatalf("ingress ops = %v", ops)
+	}
+	// A zero burst must not reach the wire; the Rust side defaults it.
+	if _, present := ops["one_time_burst"]; present {
+		t.Fatalf("zero one_time_burst should be omitted: %v", ops)
+	}
+	if _, present := ingress["bandwidth"]; present {
+		t.Fatalf("nil bandwidth bucket should be omitted: %v", ingress)
+	}
+}
+
 // The Rust side relies on serde(default), so zero-valued Go scalar fields must
 // not reach the wire. Explicit optional values use pointers when zero is valid
 // on the wire for validation.
@@ -627,14 +863,22 @@ func TestFFIWireShape_EmptyConfigOmitsOptionalFields(t *testing.T) {
 
 	for _, key := range []string{
 		"image", "snapshot", "memory_mib", "cpus", "max_memory_mib", "max_cpus", "workdir", "shell",
+		"thp",
 		"hostname", "user", "replace", "detached", "env", "scripts",
-		"ports", "ports_udp", "network", "secrets", "patches", "volumes",
-		"init", "registry_auth", "root_disk",
+		"ports", "ports_udp", "vsock", "network", "secrets", "patches", "volumes",
+		"init", "registry_auth", "registry_insecure", "registry_ca_certs", "root_disk",
 	} {
 		if _, present := got[key]; present {
 			body, _ := json.Marshal(got)
 			t.Errorf("empty config emitted key %q; payload = %s", key, body)
 		}
+	}
+}
+
+func TestFFIWireShape_THPPolicy(t *testing.T) {
+	got := marshalCreateOptions(t, WithImage("python:3.12"), WithTHP(THPAlways))
+	if got["thp"] != "always" {
+		t.Fatalf("thp = %v, want always", got["thp"])
 	}
 }
 

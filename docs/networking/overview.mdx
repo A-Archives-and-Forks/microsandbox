@@ -48,6 +48,52 @@ msb create python --name isolated --no-net
 
 The Rust and TypeScript examples disable the network device. Python `Network.none()`, Go `NetworkPolicy.None()`, and CLI `--no-net` retain the device but deny traffic in both directions through policy.
 
+## Deployment profiles
+
+`single-tenant` is the default and preserves the network configuration requested by the sandbox. `multi-tenant` adds a host-runtime isolation floor: traffic must pass both the platform public-network policy and the sandbox's policy, DNS rebinding protection is forced on, custom DNS servers and interface overrides are removed, host CA import and published ports are disabled, and connection limits are capped. Sandbox policy can further restrict this floor but cannot broaden it.
+
+<CodeGroup>
+```rust Rust
+use microsandbox::sandbox::DeploymentProfile;
+
+let sb = Sandbox::builder("shared-worker")
+    .image("python")
+    .deployment_profile(DeploymentProfile::MultiTenant)
+    .create()
+    .await?;
+```
+
+```typescript TypeScript
+await using sb = await Sandbox.builder("shared-worker")
+    .image("python")
+    .deploymentProfile("multi-tenant")
+    .create();
+```
+
+```python Python
+from microsandbox import DeploymentProfile, Sandbox
+
+sb = await Sandbox.create(
+    "shared-worker",
+    image="python",
+    deployment_profile=DeploymentProfile.MULTI_TENANT,
+)
+```
+
+```go Go
+sb, err := m.CreateSandbox(ctx, "shared-worker",
+    m.WithImage("python"),
+    m.WithDeploymentProfile(m.DeploymentProfileMultiTenant),
+)
+```
+
+```bash CLI
+msb create python --name shared-worker --deployment-profile multi-tenant
+```
+</CodeGroup>
+
+An operator can set an authoritative profile with the top-level `deployment_profile` field in `~/.microsandbox/config.json` or programmatically on `LocalBackend`. That operator choice overrides the sandbox request on create and restart. Managed cloud create requests intentionally do not carry a deployment profile—the hosting driver selects it.
+
 ## High-level profiles
 
 For common access shapes, compose high-level profiles. Every non-empty profile set automatically adds narrow DNS access through the sandbox gateway.
@@ -205,6 +251,76 @@ msb create python --name api -p 8080:80
 Use an explicit bind address, such as `0.0.0.0`, only when you intentionally want to listen beyond localhost. `-p 8080:80` and SDK helpers like `.port(8080, 80)` bind to `127.0.0.1`; `-p 127.0.0.1:8080:80` is the same local-only shape. `-p 0.0.0.0:8080:80` or a specific LAN interface address makes the host listener reachable outside the machine, subject to your OS firewall and network policy.
 
 On Windows, the first published port may trigger a Windows Defender Firewall prompt for `msb.exe` because the runtime opens a host listening socket. For local development, keep the bind address on `127.0.0.1`. Only allow private/public network access in the firewall prompt when you intentionally bind a published port beyond loopback.
+
+## Rate limits
+
+Sandboxes are unlimited by default. Optional per-sandbox rate limiters cap outbound (egress) and inbound (ingress) traffic independently. Each limiter has two token buckets: a bandwidth bucket measured in bytes, and an ops bucket measured in packets. Buckets start full, refill continuously, and can carry a one-time startup burst that never refills. Limits are set at creation and take effect on the next sandbox start.
+
+<CodeGroup>
+```rust Rust
+use std::time::Duration;
+use microsandbox::size::SizeExt;
+
+let sb = Sandbox::builder("throttled")
+    .image("python")
+    .network(|n| n.rate_limiter(|r| r.egress(|r| r
+        .bandwidth(1.mib(), Duration::from_secs(1))
+        .bandwidth_burst(512.kib())
+        .ops(1_000, Duration::from_secs(1)))))
+    .create()
+    .await?;
+```
+
+```typescript TypeScript
+await using sb = await Sandbox.builder("throttled")
+    .image("python")
+    .network((n) => n.rateLimiter((r) => r.egress((r) => r
+        .bandwidth(1_048_576, 1_000)
+        .bandwidthBurst(524_288)
+        .ops(1_000, 1_000))))
+    .create();
+```
+
+```python Python
+from microsandbox import Network, NetworkRateLimiter, RateLimiter, Sandbox, TokenBucket
+
+sb = await Sandbox.create(
+    "throttled",
+    image="python",
+    network=Network(
+        rate_limiter=NetworkRateLimiter(
+            egress=RateLimiter(
+                bandwidth=TokenBucket(size=1_048_576, refill_time_ms=1_000, one_time_burst=524_288),
+                ops=TokenBucket(size=1_000, refill_time_ms=1_000),
+            ),
+        ),
+    ),
+)
+```
+
+```go Go
+sb, err := m.CreateSandbox(ctx, "throttled",
+    m.WithImage("python"),
+    m.WithNetwork(&m.NetworkConfig{
+        RateLimiter: &m.NetworkRateLimiterConfig{
+            Egress: &m.RateLimiterConfig{
+                Bandwidth: &m.TokenBucketConfig{Size: 1 << 20, RefillTime: time.Second, OneTimeBurst: 512 << 10},
+                Ops:       &m.TokenBucketConfig{Size: 1000, RefillTime: time.Second},
+            },
+        },
+    }),
+)
+```
+
+```bash CLI
+msb create python --name throttled \
+  --net-egress-bandwidth 1M/1s \
+  --net-egress-bandwidth-burst 512K \
+  --net-egress-ops 1000/1s
+```
+</CodeGroup>
+
+The `--net-ingress-*` flags mirror the egress flags for inbound traffic (`--net-ingress-bandwidth`, `--net-ingress-bandwidth-burst`, `--net-ingress-ops`, `--net-ingress-ops-burst`). Sizes accept raw bytes plus `K`, `M`, and `G` suffixes; the interval defaults to one second when omitted. A frame larger than the bandwidth bucket is delivered once and the limiter then pauses long enough to pay it off, so oversized packets are throttled instead of stuck.
 
 ## Reaching the host
 
