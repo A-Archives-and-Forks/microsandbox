@@ -13,6 +13,10 @@
     "light": "#BF84FE",
     "dark": "#BF84FE"
   },
+  "thumbnails": {
+    "appearance": "dark",
+    "background": "/images/og-background.png"
+  },
   "navbar": {
     "primary": {
       "type": "github",
@@ -441,6 +445,18 @@
     "default": "system"
   },
   "description": "Easy, fast microVMs for untrusted workloads, on your machine or in the cloud",
+  "seo": {
+    "organization": {
+      "id": "https://microsandbox.dev/#organization",
+      "name": "microsandbox",
+      "url": "https://microsandbox.dev",
+      "sameAs": [
+        "https://github.com/superradcompany/microsandbox",
+        "https://www.linkedin.com/company/superradcompany",
+        "https://x.com/microsandbox"
+      ]
+    }
+  },
   "footer": {
     "socials": {
       "github": "https://github.com/superradcompany/microsandbox",
