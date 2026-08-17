@@ -5,8 +5,6 @@
 //! channel pair (connected to the smoltcp socket in the poll loop) and the
 //! real server.
 
-pub(crate) mod upstream;
-
 use std::borrow::Cow;
 use std::io;
 use std::net::{IpAddr, SocketAddr};
@@ -18,14 +16,14 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 
-use self::upstream::UpstreamTcpTarget;
-use crate::conn::ProxyConnectState;
+use super::connection::ProxyConnectState;
+use super::upstream::UpstreamTcpTarget;
+use crate::netstack::shared::SharedState;
 use crate::policy::{EgressEvaluation, HostnameSource, NetworkPolicy, Protocol};
 use crate::secrets::config::{SecretsConfig, SecretsConfigExt, ViolationAction};
 use crate::secrets::handler::{
     SecretsHandler, first_line_is_not_http_request, looks_like_http_request_prefix,
 };
-use crate::shared::SharedState;
 use crate::tls::proxy::{TlsProxyContext, tls_proxy_task};
 use crate::tls::sni;
 use crate::tls::state::TlsState;
@@ -1262,8 +1260,8 @@ mod tests {
     use std::net::IpAddr;
     use std::time::Duration as StdDuration;
 
+    use crate::netstack::shared::{ResolvedHostnameFamily, SharedState};
     use crate::policy::{Action, Destination, NetworkPolicy, PortRange, Rule};
-    use crate::shared::{ResolvedHostnameFamily, SharedState};
 
     const SHARED_FASTLY_IP: &str = "151.101.0.223";
 

@@ -5,8 +5,8 @@ use std::net::SocketAddr;
 
 use tokio::net::TcpStream;
 
-use crate::conn::ProxyConnectState;
-use crate::shared::SharedState;
+use super::connection::ProxyConnectState;
+use crate::netstack::shared::SharedState;
 
 //--------------------------------------------------------------------------------------------------
 // Types
@@ -118,8 +118,8 @@ fn fallback_eligible(error: &io::Error) -> bool {
 mod tests {
     use tokio::net::TcpListener;
 
+    use super::super::connection::ProxyConnectStatus;
     use super::*;
-    use crate::conn::ProxyConnectStatus;
 
     #[tokio::test]
     async fn connect_falls_back_from_ipv6_to_ipv4_loopback() {
