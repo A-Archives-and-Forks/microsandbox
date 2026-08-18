@@ -1581,6 +1581,8 @@ fn build_vm(
             .map_err(|e| RuntimeError::Custom(format!("--mount {mount_spec:?}: {e}")))?;
 
         let tag = parsed.tag;
+        // Keep the host path so a mount failure can name the directory.
+        let host_path = parsed.host_path.clone();
         #[cfg(unix)]
         let mount_bind_identity_map =
             bind_identity_map_for_mount(&mut bind_identity_map, parsed.stat_virtualization);
@@ -1598,8 +1600,17 @@ fn build_vm(
             quota_bytes: parsed.quota_bytes,
             ..Default::default()
         };
-        let backend = PassthroughFs::new(cfg)
-            .map_err(|e| RuntimeError::Custom(format!("mount {tag}: {e}")))?;
+        let backend = PassthroughFs::new(cfg).map_err(|e| {
+            // Name the folder on a permission error, usually an OS access restriction.
+            if e.kind() == std::io::ErrorKind::PermissionDenied {
+                RuntimeError::Custom(format!(
+                    "mount {tag}: permission denied reading host folder {host_path} ({e}). \
+                     On macOS, grant access in System Settings > Privacy & Security."
+                ))
+            } else {
+                RuntimeError::Custom(format!("mount {tag}: {e}"))
+            }
+        })?;
         builder = builder.fs(move |fs| fs.tag(&tag).custom(Box::new(backend)));
     }
 
