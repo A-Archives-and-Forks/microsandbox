@@ -255,9 +255,13 @@ Use an explicit bind address, such as `0.0.0.0`, only when you intentionally wan
 
 On Windows, the first published port may trigger a Windows Defender Firewall prompt for `msb.exe` because the runtime opens a host listening socket. For local development, keep the bind address on `127.0.0.1`. Only allow private/public network access in the firewall prompt when you intentionally bind a published port beyond loopback.
 
-## Rate limits
+## Network traffic rate limits
 
-Sandboxes are unlimited by default. Optional per-sandbox rate limiters cap outbound (egress) and inbound (ingress) traffic independently. Each limiter has two token buckets: a bandwidth bucket measured in bytes, and an ops bucket measured in packets. Buckets start full, refill continuously, and can carry a one-time startup burst that never refills. Limits are set at creation and take effect on the next sandbox start.
+<Tooltip tip="Network traffic rate limits are available for local sandboxes. microsandbox cloud currently rejects this setting."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+
+Network rate limits apply only to traffic crossing a sandbox's virtual network device. They do not limit CPU, memory, disk I/O, API requests, or how many sandboxes can run. If you do not configure a limiter, microsandbox does not throttle the sandbox's network bandwidth or packet rate. Once configured, the limiter is enforced independently for outbound (egress) and inbound (ingress) traffic.
+
+For each direction, you can configure a bandwidth bucket measured in bytes per refill interval, a packet-rate bucket measured in packets per interval, or both. An omitted direction or bucket remains unthrottled. Buckets start full, refill continuously, and can include a one-time startup burst that does not refill. Limits are set at creation and take effect on the next sandbox start.
 
 <CodeGroup>
 ```rust Rust
