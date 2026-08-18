@@ -255,7 +255,7 @@ Use an explicit bind address, such as `0.0.0.0`, only when you intentionally wan
 
 On Windows, the first published port may trigger a Windows Defender Firewall prompt for `msb.exe` because the runtime opens a host listening socket. For local development, keep the bind address on `127.0.0.1`. Only allow private/public network access in the firewall prompt when you intentionally bind a published port beyond loopback.
 
-## Network traffic rate limits
+## Rate limits
 
 <Tooltip tip="Network traffic rate limits are available for local sandboxes. microsandbox cloud currently rejects this setting."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
