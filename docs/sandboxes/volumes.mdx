@@ -6,7 +6,7 @@ icon: "hard-drive"
 ---
 
 <Note>
-  **Cloud:** Volumes use fast block storage managed by the platform. Every organization automatically gets an undeletable **host volume**: think of it as the disk of the one computer all its sandboxes run on, and it is what bind and disk-image mounts resolve against.
+  **On microsandbox cloud:** Volumes use fast block storage managed by the platform. Every organization automatically gets an undeletable **host volume**: think of it as the disk of the one computer all its sandboxes run on, and it is what bind and disk-image mounts resolve against.
 </Note>
 
 Volumes give a sandbox persistent or shared storage by mounting host data, managed storage, disk images, or in-memory filesystems into the guest. Mounts provide direct filesystem access and are significantly faster than the [filesystem API](/sandboxes/filesystem), which transfers files individually, so they are preferable for anything beyond ad-hoc reads and writes.
@@ -17,7 +17,7 @@ microsandbox supports four mount types on both backends: bind mounts, named volu
 
 <Tooltip tip="Available only on microsandbox cloud; the local backend has no default volume."><span className="msb-badge-cloud">Cloud-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
-Every Cloud organization has an always-present default volume. You can read and write it directly without starting a sandbox:
+Every cloud organization has an always-present default volume. You can read and write it directly without starting a sandbox:
 
 <CodeGroup>
 ```rust Rust
@@ -41,7 +41,7 @@ err = volume.FS().WriteString("state.json", `{"ready":true}`)
 ```
 </CodeGroup>
 
-The default volume is isolated to the authenticated Cloud organization and cannot be removed. Default-volume lookup is deliberately unsupported on the local backend: forgetting an API key cannot expose or modify files from your machine. Named local volumes continue to live under `~/.microsandbox/volumes/` and retain their existing direct filesystem API.
+The default volume is isolated to the authenticated cloud organization and cannot be removed. Default-volume lookup is deliberately unsupported on the local backend: forgetting an API key cannot expose or modify files from your machine. Named local volumes continue to live under `~/.microsandbox/volumes/` and retain their existing direct filesystem API.
 
 ## Bind mounts
 
