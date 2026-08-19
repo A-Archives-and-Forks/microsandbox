@@ -59,7 +59,7 @@ See [sandbox configuration files](/cli/configuration).
 
 **Guest-to-host vsock routes**
 
-A process inside a local sandbox can now talk to a host service over virtio-vsock, without opening a TCP port on either side. The host service listens on a Unix stream socket, a Unix datagram socket, or a Windows named pipe, and Microsandbox connects it to a fixed guest port.
+A process inside a local sandbox can now talk to a host service over virtio-vsock, without opening a TCP port on either side. The host service listens on a Unix stream socket, a Unix datagram socket, or a Windows named pipe, and microsandbox connects it to a fixed guest port.
 
 ```bash
 msb run --vsock /run/host-api.sock:5000 alpine

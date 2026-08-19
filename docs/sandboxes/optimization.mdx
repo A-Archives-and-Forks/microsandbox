@@ -40,7 +40,7 @@ See [OCI images](/images/overview#oci-images) for image behavior and [Bootstrap]
 
 ## CPU placement
 
-By default, sandbox vCPU threads follow the host scheduler. On Linux and Windows, Microsandbox can place those threads for you.
+By default, sandbox vCPU threads follow the host scheduler. On Linux and Windows, microsandbox can place those threads for you.
 
 ### Choose a policy
 
@@ -132,7 +132,7 @@ msb create python:3.12 \
 
 ### What placement guarantees
 
-- Microsandbox coordinates only sandboxes that share the same `MSB_HOME`.
+- microsandbox coordinates only sandboxes that share the same `MSB_HOME`.
 - Placement considers the sandbox's maximum CPU count, not only the CPUs online at boot.
 - When exclusive CPU capacity runs out, normal policies may share logical CPUs.
 - Placement does not isolate unrelated host processes or reserve dedicated cores.
@@ -171,7 +171,7 @@ Check their status with `msb doctor`. Read [Linux troubleshooting](/troubleshoot
 
 ## Optimizations that are not knobs
 
-Microsandbox automatically selects compatible filesystem, guest kernel, interrupt, and vCPU affinity optimizations. These implementation details do not have user-facing settings.
+microsandbox automatically selects compatible filesystem, guest kernel, interrupt, and vCPU affinity optimizations. These implementation details do not have user-facing settings.
 
 ## Measure the result
 
