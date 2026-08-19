@@ -46,7 +46,7 @@ msb run -t --name goose-demo --replace `
 On first launch Goose asks whether to share anonymous usage data, then walks through provider configuration. `GOOSE_BIN_DIR` installs the executable on the sandbox's normal `PATH`, including later `msb exec` sessions. Goose keeps its configuration, data, and session state on the sandbox's 3 GiB root disk.
 
 <Tip>
-  For an isolated workspace—or when using microsandbox cloud—replace `--mount-dir ./my-project:/workspace:rw` with `--copy-dir ./my-project:/workspace`. To test Goose without a project, use `--mkdir /workspace` instead.
+  For an isolated workspace, or when using microsandbox cloud, replace `--mount-dir ./my-project:/workspace:rw` with `--copy-dir ./my-project:/workspace`. To test Goose without a project, use `--mkdir /workspace` instead.
 </Tip>
 
 </Step>

@@ -46,7 +46,7 @@ msb run -t --name opencode-demo --replace `
 The first run downloads the package and may take a couple of minutes. OpenCode should render its prompt and offer `/connect` for provider setup. Its XDG configuration, provider connections, and session data live on the sandbox's 4 GiB root disk and remain available when the sandbox stops and starts.
 
 <Tip>
-  For an isolated workspace—or when using microsandbox cloud—replace `--mount-dir ./my-project:/workspace:rw` with `--copy-dir ./my-project:/workspace`. To try the TUI without a project, use `--mkdir /workspace` instead.
+  For an isolated workspace, or when using microsandbox cloud, replace `--mount-dir ./my-project:/workspace:rw` with `--copy-dir ./my-project:/workspace`. To try the TUI without a project, use `--mkdir /workspace` instead.
 </Tip>
 
 </Step>
