@@ -359,6 +359,7 @@
             "group": "Data & Observability",
             "icon": "database",
             "pages": [
+              "examples/data/juicefs-s3",
               "examples/data/postgresql",
               "examples/data/migration-rehearsal",
               "examples/data/redis",
@@ -488,6 +489,10 @@
     {
       "source": "/recipes/:slug*",
       "destination": "/examples/:slug*"
+    },
+    {
+      "source": "/examples/data/juicefs-r2",
+      "destination": "/examples/data/juicefs-s3"
     },
     {
       "source": "/cloud/compatibility",
