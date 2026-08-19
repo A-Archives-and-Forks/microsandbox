@@ -300,7 +300,7 @@ Processes that were already running keep their original environment and working 
 
 ### Secrets
 
-Rotating the value of an existing secret is live because substitution happens at the host network boundary. Guest code keeps using the same placeholder while Microsandbox begins injecting the new value:
+Rotating the value of an existing secret is live because substitution happens at the host network boundary. Guest code keeps using the same placeholder while microsandbox begins injecting the new value:
 
 <CodeGroup>
 ```bash CLI
@@ -427,7 +427,7 @@ _, err = sb.Modify(ctx, m.ModifyOptions{
 
 `--next-start` saves the desired configuration without touching the running VM. `--restart` stops and starts the sandbox only when the patch needs it. The default policy does neither and rejects restart-required changes.
 
-Root disk resizing remains conservative: managed and flat OCI disks grow only, tmpfs can grow or shrink at the next boot, and user-supplied disk images are never resized by Microsandbox. Named volume and mount capacity is managed where that storage is defined. See [Volumes](/sandboxes/volumes) and [Images](/images/overview) for the storage model.
+Root disk resizing remains conservative: managed and flat OCI disks grow only, tmpfs can grow or shrink at the next boot, and user-supplied disk images are never resized by microsandbox. Named volume and mount capacity is managed where that storage is defined. See [Volumes](/sandboxes/volumes) and [Images](/images/overview) for the storage model.
 
 ## Reference
 

@@ -4,7 +4,7 @@ description: Set shared defaults, host policy, registry access, and backend prof
 icon: "sliders"
 ---
 
-Microsandbox reads shared configuration from `~/.microsandbox/config.json`. Use this file for defaults and host policy that should apply across the CLI and SDKs. Every field is optional, and a missing file behaves like an empty JSON object.
+microsandbox reads shared configuration from `~/.microsandbox/config.json`. Use this file for defaults and host policy that should apply across the CLI and SDKs. Every field is optional, and a missing file behaves like an empty JSON object.
 
 <Note>
   This page covers the global JSON configuration. For reusable per-sandbox YAML loaded with `--conf`, see [Configuration file](/cli/configuration). For every global field and accepted value, use the [Global config reference](/configuration).
@@ -74,7 +74,7 @@ highest precedence
 lowest precedence
 ```
 
-Microsandbox resolves these values when it creates a local sandbox and persists the result. Editing `config.json` changes future sandboxes, not existing ones. Use `msb inspect <name> --format json` to inspect a sandbox's effective configuration.
+microsandbox resolves these values when it creates a local sandbox and persists the result. Editing `config.json` changes future sandboxes, not existing ones. Use `msb inspect <name> --format json` to inspect a sandbox's effective configuration.
 
 Host-owned policy is intentionally stricter. A global `deployment_profile` sets the local host's isolation floor and cannot be weakened by a per-sandbox CLI or SDK option. Backend selection and registry authentication also have their own resolution rules; follow their reference links before relying on fallback behavior.
 
