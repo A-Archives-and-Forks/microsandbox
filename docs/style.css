@@ -97,8 +97,8 @@ nav[aria-label="Pages"] a > div:has(> img[src*="/pi.svg"]) { --msb-agent-icon: u
 }
 
 /* Compact platform preflight: one grouped strip keeps host requirements
- * visible without giving four short facts the visual weight of full cards or
- * a page-width comparison table. */
+ * visible without giving short facts the visual weight of full cards or a
+ * page-width comparison table. */
 .msb-platform-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -108,6 +108,10 @@ nav[aria-label="Pages"] a > div:has(> img[src*="/pi.svg"]) { --msb-agent-icon: u
   border: 1px solid rgba(109, 75, 196, 0.16);
   border-radius: 0.75rem;
   background: rgba(109, 75, 196, 0.16);
+}
+
+.msb-platform-strip-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .msb-platform-item {
