@@ -114,7 +114,7 @@ microsandbox reads its global configuration from `~/.microsandbox/config.json`. 
 | `ssh` | [reference](#ssh) | Host-side SSH session defaults |
 | `metrics` | [reference](#metrics) | Live metrics shared-memory registry settings |
 | `active_profile` | `null` | Default [backend profile](#profiles) name |
-| `profiles` | [reference](#profiles) | Named [backend profiles](/getting-started/backends) |
+| `profiles` | [reference](#profiles) | Named [backend profiles](/operations/backends#profiles) |
 
 ## `deployment_profile`
 
@@ -350,7 +350,7 @@ When pulling from a registry, microsandbox resolves credentials in this order:
 
 ## `profiles`
 
-Named backend profiles keyed by profile name; `active_profile` selects the default. How profiles participate in backend selection, including the full resolution order, is documented in [Backends](/getting-started/backends).
+Named backend profiles keyed by profile name; `active_profile` selects the default. How profiles participate in backend selection, including the full resolution order, is documented in [Backends](/operations/backends).
 
 | Field | Default | Description |
 |-------|---------|-------------|
