@@ -18,12 +18,48 @@
     text { font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
     .text { fill: var(--text); }
     .muted { fill: var(--muted); }
+    .sandbox-box {
+      transform-box: view-box;
+      transform-origin: 180px 200px;
+      animation: resize-sandbox 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+    .sandbox-copy {
+      animation: move-copy 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
     .grow-outline { animation: show-grow-outline 8s ease-in-out infinite; }
     .shrink-outline { animation: show-shrink-outline 8s ease-in-out infinite; }
-    .grow-arrow { animation: show-grow-arrow 8s ease-in-out infinite; }
-    .shrink-arrow { animation: show-shrink-arrow 8s ease-in-out infinite; }
+    .grow-arrow {
+      transform-box: view-box;
+      transform-origin: 0 0;
+      animation: move-grow-arrow 8s cubic-bezier(0.4, 0, 0.2, 1) infinite, show-grow-arrow 8s ease-in-out infinite;
+    }
+    .shrink-arrow {
+      transform-box: view-box;
+      transform-origin: 0 0;
+      animation: move-shrink-arrow 8s cubic-bezier(0.4, 0, 0.2, 1) infinite, show-shrink-arrow 8s ease-in-out infinite;
+    }
     .small-allocation { animation: show-small 8s ease-in-out infinite; }
     .large-allocation { animation: show-large 8s ease-in-out infinite; }
+
+    @keyframes resize-sandbox {
+      0%, 14%, 86%, 100% { transform: scale(1); }
+      39%, 61% { transform: scale(1.454545); }
+    }
+
+    @keyframes move-copy {
+      0%, 14%, 86%, 100% { transform: translate(-50px, 25px); }
+      39%, 61% { transform: translate(0, 0); }
+    }
+
+    @keyframes move-grow-arrow {
+      0%, 14% { transform: translate(400px, 90px) rotate(-26.565deg) scaleX(1); }
+      36%, 100% { transform: translate(489px, 45.5px) rotate(-26.565deg) scaleX(0.01); }
+    }
+
+    @keyframes move-shrink-arrow {
+      0%, 61% { transform: translate(489px, 45.5px) rotate(153.435deg) scaleX(1); }
+      83%, 100% { transform: translate(400px, 90px) rotate(153.435deg) scaleX(0.01); }
+    }
 
     @keyframes show-grow-outline {
       0%, 8%, 42%, 100% { opacity: 0; }
@@ -64,39 +100,34 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .motion { display: none; }
-      .grow-outline, .shrink-outline, .grow-arrow, .shrink-arrow { animation: none; opacity: 0; }
-      .small-allocation { animation: none; opacity: 1; }
-      .large-allocation { animation: none; opacity: 0; }
+      .sandbox-box, .sandbox-copy, .grow-outline, .shrink-outline, .grow-arrow, .shrink-arrow, .small-allocation, .large-allocation { animation: none; }
+      .sandbox-box { transform: scale(1); }
+      .sandbox-copy { transform: translate(-50px, 25px); }
+      .grow-outline, .shrink-outline, .grow-arrow, .shrink-arrow { opacity: 0; }
+      .small-allocation { opacity: 1; }
+      .large-allocation { opacity: 0; }
     }
   </style>
 
   <!-- The target outline appears only before and during the upward resize. -->
   <rect class="grow-outline" x="180" y="40" width="320" height="160" rx="12" fill="none" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="3 7" opacity="0" />
 
-  <!-- The tail follows the active corner exactly; only the head is inset from the target boundary. -->
-  <line class="grow-arrow" x1="400" y1="90" x2="489" y2="45.5" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrowhead)" opacity="0">
-    <animate class="motion" attributeName="x1" values="400;400;400;500;500;500;500;500" keyTimes="0;0.08;0.14;0.39;0.55;0.61;0.86;1" dur="8s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1" />
-    <animate class="motion" attributeName="y1" values="90;90;90;40;40;40;40;40" keyTimes="0;0.08;0.14;0.39;0.55;0.61;0.86;1" dur="8s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1" />
-  </line>
+  <!-- A local horizontal arrow is rotated into place, then shrinks toward its fixed head. -->
+  <g class="grow-arrow" opacity="0">
+    <line x1="0" y1="0" x2="99.5" y2="0" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrowhead)" />
+  </g>
 
   <!-- The smaller destination and reverse arrow appear only before and during the downward resize. -->
   <rect class="shrink-outline" x="180" y="90" width="220" height="110" rx="12" fill="none" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="3 7" opacity="0" />
-  <!-- On shrink, the relationship reverses: inset tail, exact destination corner. -->
-  <line class="shrink-arrow" x1="489" y1="45.5" x2="400" y2="90" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrowhead)" opacity="0">
-    <animate class="motion" attributeName="x1" values="489;489;489;489;489;489;389;389" keyTimes="0;0.08;0.14;0.39;0.55;0.61;0.86;1" dur="8s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1" />
-    <animate class="motion" attributeName="y1" values="45.5;45.5;45.5;45.5;45.5;45.5;95.5;95.5" keyTimes="0;0.08;0.14;0.39;0.55;0.61;0.86;1" dur="8s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1" />
-  </line>
+  <!-- On shrink, the head stays on the small destination while the inset tail approaches it. -->
+  <g class="shrink-arrow" opacity="0">
+    <line x1="0" y1="0" x2="99.5" y2="0" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrowhead)" />
+  </g>
 
   <!-- The left edge and bottom edge stay fixed, making the top-right corner travel diagonally. -->
-  <rect x="180" y="90" width="220" height="110" rx="12" fill="var(--accent)" fill-opacity="0.05" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="6 5">
-    <animate class="motion" attributeName="y" values="90;90;90;40;40;40;90;90" keyTimes="0;0.08;0.14;0.39;0.55;0.61;0.86;1" dur="8s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1" />
-    <animate class="motion" attributeName="width" values="220;220;220;320;320;320;220;220" keyTimes="0;0.08;0.14;0.39;0.55;0.61;0.86;1" dur="8s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1" />
-    <animate class="motion" attributeName="height" values="110;110;110;160;160;160;110;110" keyTimes="0;0.08;0.14;0.39;0.55;0.61;0.86;1" dur="8s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1" />
-  </rect>
+  <rect class="sandbox-box" x="180" y="90" width="220" height="110" rx="12" fill="var(--accent)" fill-opacity="0.05" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="6 5" vector-effect="non-scaling-stroke" />
 
-  <g>
-    <animateTransform class="motion" attributeName="transform" type="translate" values="-50 25;-50 25;-50 25;0 0;0 0;0 0;-50 25;-50 25" keyTimes="0;0.08;0.14;0.39;0.55;0.61;0.86;1" dur="8s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1" />
+  <g class="sandbox-copy">
     <text x="340" y="105" class="muted" text-anchor="middle" font-size="13" font-weight="600">sandbox</text>
 
     <g class="small-allocation">
