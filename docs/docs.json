@@ -304,6 +304,8 @@
             "icon": "robot",
             "pages": [
               "examples/overview",
+              "examples/agents/claude-code",
+              "examples/agents/codex",
               "examples/agents/opencode",
               "examples/agents/openclaw",
               "examples/agents/goose",
