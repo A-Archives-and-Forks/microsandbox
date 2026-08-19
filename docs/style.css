@@ -33,6 +33,8 @@ nav[aria-label="Pages"] img[src*="/images/recipes/agents/"] {
   display: none;
 }
 
+nav[aria-label="Pages"] a > div:has(> img[src*="/claude-code.svg"]) { --msb-agent-icon: url("/images/recipes/agents/claude-code.svg"); }
+nav[aria-label="Pages"] a > div:has(> img[src*="/codex.svg"]) { --msb-agent-icon: url("/images/recipes/agents/codex.svg"); }
 nav[aria-label="Pages"] a > div:has(> img[src*="/opencode.svg"]) { --msb-agent-icon: url("/images/recipes/agents/opencode.svg"); }
 nav[aria-label="Pages"] a > div:has(> img[src*="/openclaw.svg"]) { --msb-agent-icon: url("/images/recipes/agents/openclaw.svg"); }
 nav[aria-label="Pages"] a > div:has(> img[src*="/goose.svg"]) { --msb-agent-icon: url("/images/recipes/agents/goose.svg"); }
