@@ -62,7 +62,7 @@ If an error mentions `libkrunfw.so` or `libkrunfw.dylib`, clear any old Unix/mac
 
 ## Updates and reinstalls
 
-`msb self update` stages and verifies the new Windows release before scheduling the installed files for replacement. The command can exit while another `msb` or `microsandbox` process still has an executable locked; the background task keeps retrying and writes its progress to the log path printed by the command.
+`msb self update` stages and verifies the new Windows release before scheduling the installed files for replacement. The command can exit while another `msb` or `microsandbox` process still has an executable locked. The background task keeps retrying and writes its progress to the log path printed by the command.
 
 The PowerShell installer checks both public executable names before changing the installation. If it reports that an executable is still running, stop the listed process or its active sandbox, then rerun the installer.
 
