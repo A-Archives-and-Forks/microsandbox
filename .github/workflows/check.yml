@@ -868,8 +868,9 @@ jobs:
       - name: Stage runtime bundle
         run: |
           mkdir -p sdk/python/microsandbox/_bundled/bin sdk/python/microsandbox/_bundled/lib
-          cp build/msb sdk/python/microsandbox/_bundled/bin/
-          cp build/libkrunfw.so.${{ env.LIBKRUNFW_VERSION }} sdk/python/microsandbox/_bundled/lib/
+          # Match the release wheel after artifact download strips executable bits.
+          install -m 755 build/msb sdk/python/microsandbox/_bundled/bin/msb
+          install -m 644 build/libkrunfw.so.${{ env.LIBKRUNFW_VERSION }} sdk/python/microsandbox/_bundled/lib/
           cd sdk/python/microsandbox/_bundled/lib
           ln -sf libkrunfw.so.${{ env.LIBKRUNFW_VERSION }} libkrunfw.so.${{ env.LIBKRUNFW_ABI }}
           ln -sf libkrunfw.so.${{ env.LIBKRUNFW_ABI }} libkrunfw.so
@@ -1039,7 +1040,7 @@ jobs:
         run: |
           gem build microsandbox.gemspec
           mold -run gem install --local microsandbox-*.gem --no-document
-          ruby --disable-gems -e 'require "rubygems"; require "microsandbox"; abort unless Microsandbox.version == "0.6.11"'
+          ruby --disable-gems -e 'require "rubygems"; require "microsandbox"; abort unless Microsandbox.version == "0.6.12"'
 
       - name: Restore standalone Ruby lockfile
         if: always()
