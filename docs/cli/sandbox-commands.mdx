@@ -177,7 +177,7 @@ Resume a stopped sandbox. Name one or more sandboxes, or select them by label.
 
 ```bash
 msb start devbox
-msb start --label app=engine          # start every sandbox labelled app=engine
+msb start --label app=engine          # Start every sandbox labeled app=engine
 ```
 
 | Flag | Description |
@@ -193,7 +193,7 @@ msb start --label app=engine          # start every sandbox labelled app=engine
 msb stop devbox                # Graceful shutdown (10s grace)
 msb stop --force devbox        # Force kill immediately
 msb stop -t 30 devbox          # 30s grace before force kill
-msb stop --label app=engine    # stop every sandbox labelled app=engine
+msb stop --label app=engine    # Stop every sandbox labeled app=engine
 ```
 
 Graceful shutdown gives the sandbox a chance to finish writing any
@@ -411,7 +411,7 @@ msb logs devbox --source all                # everything, chronologically merged
 **Source tags** (the `s` field in `--json` output):
 
 - `stdout` / `stderr`: captured from the session's pipes when running in **pipe mode** (streams stay separated end to end).
-- `output`: captured from the session in **pty mode**. pty allocation merges stdout and stderr at the kernel level inside the guest, so they arrive as a single stream, tagged `output` rather than mislabelled as `stdout`.
+- `output`: captured from the session in **pty mode**. pty allocation merges stdout and stderr at the kernel level inside the guest, so they arrive as a single stream, tagged `output` rather than mislabeled as `stdout`.
 - `system`: synthetic lifecycle markers (`--- sandbox started ---` / `--- sandbox stopped ---`) plus diagnostic lines from `runtime.log`/`kernel.log` when `--source system` is requested.
 
 <Tip>
@@ -426,7 +426,7 @@ List all stored sandboxes.
 msb ls                    # All sandboxes (running and stopped)
 msb ls --running          # Running sandboxes only
 msb ls --stopped          # Stopped sandboxes only
-msb ls --label app=engine # Only sandboxes labelled app=engine
+msb ls --label app=engine # Only sandboxes labeled app=engine
 msb ls --format json      # JSON output
 msb ls -q                 # Names only
 ```
@@ -526,7 +526,7 @@ Remove one or more sandboxes and their associated state.
 msb rm devbox
 msb rm --force devbox            # Stop and remove in one step
 msb rm worker-1 worker-2         # Remove multiple
-msb rm --force --label app=engine  # Remove every sandbox labelled app=engine
+msb rm --force --label app=engine  # Remove every sandbox labeled app=engine
 ```
 
 | Flag | Description |
