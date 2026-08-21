@@ -1,6 +1,7 @@
 ---
 title: Snapshots
 description: Rust SDK - Snapshot API reference
+keywords: ["Rust SDK", "Rust snapshots", "microsandbox snapshots"]
 ---
 
 <Tooltip tip="Snapshot creation, restore, import, and export use local disk artifacts and are not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
@@ -974,8 +975,6 @@ Captured upper-layer file metadata. Re-exported as `microsandbox::snapshot::Uppe
 
 Content integrity descriptor for the captured upper layer.
 
-| Field | Type | Description |
-|-------|------|-------------|
 | Variant | Serialized algorithm | Fields | Purpose |
 |---------|----------------------|--------|---------|
 | `Sha256` | `sha256` | `digest` | Exact released compatibility |

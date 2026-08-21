@@ -4,7 +4,7 @@ description: Control how sandboxes resolve domain names
 icon: "magnifying-glass"
 ---
 
-Microsandbox handles DNS queries on the host instead of letting the guest contact a resolver directly. This makes domain rules and DNS rebinding protection possible.
+microsandbox handles DNS queries on the host instead of letting the guest contact a resolver directly. This makes domain rules and DNS rebinding protection possible.
 
 ## DNS as egress
 
@@ -19,7 +19,7 @@ Every DNS query must pass the sandbox's egress policy.
 
 The `public`, `private`, and `host` profiles already allow DNS through the gateway. With a custom deny-by-default policy, add the equivalent of `allow_dns()` or use `allow@dns` in the CLI. Otherwise, every lookup will be denied.
 
-DNS over TLS uses TCP port `853` and needs its own allow rule. It also requires [TLS interception](/networking/tls).
+DNS over TLS uses TCP port `853` and needs its own allow rule. It also requires [TLS MITM](/networking/tls).
 
 DNS rebinding protection is separate from query access. Private or reserved answers are rejected unless an explicit address rule allows them. An allow-by-default policy does not disable this protection. See [Network defenses](/security/network) for the full policy behavior.
 
@@ -86,9 +86,9 @@ msb create python --name safe-agent --net-default allow \
 
 ## Pinning nameservers
 
-<Tooltip tip="Custom nameservers are not available on Microsandbox Cloud. Cloud sandboxes use platform-managed DNS."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+<Tooltip tip="Custom nameservers are not available on microsandbox cloud. Cloud sandboxes use platform-managed DNS."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
-By default, Microsandbox uses the host's resolver list. Set `nameservers` when you need specific resolvers.
+By default, microsandbox uses the host's resolver list. Set `nameservers` when you need specific resolvers.
 
 Nameservers can be IP addresses, hostnames, or either form with a port. Hostnames are resolved once when the sandbox starts.
 
@@ -124,7 +124,8 @@ await using sb = await Sandbox.builder("safe-agent")
 ```
 
 ```python Python
-from microsandbox import DnsConfig, Network, Sandbox
+from microsandbox import Network, Sandbox
+from microsandbox.types import DnsConfig
 
 sb = await Sandbox.create(
     "safe-agent",
@@ -166,19 +167,19 @@ An application can request a specific resolver, such as with `dig @1.1.1.1`. Tha
 | Transport | Behavior |
 | --- | --- |
 | UDP or TCP on port `53` | Intercepted |
-| DNS over TLS on TCP port `853` | Intercepted when TLS interception is enabled |
+| DNS over TLS on TCP port `853` | Intercepted when TLS MITM is enabled |
 | DNS over QUIC, mDNS, LLMNR, and NetBIOS-NS | Refused so the guest can fall back to regular DNS |
 | DNS over HTTPS | Treated as normal HTTPS traffic |
 
-Domain blocking and rebinding protection apply only to DNS traffic that Microsandbox can identify. Use network rules to control DNS over HTTPS or to restrict which resolvers the guest can reach.
+Domain blocking and rebinding protection apply only to DNS traffic that microsandbox can identify. Use network rules to control DNS over HTTPS or to restrict which resolvers the guest can reach.
 
 ## Domain-based policy rules
 
-Microsandbox records the IP addresses returned for each domain. A domain rule matches a later connection only when that sandbox resolved the domain to that IP.
+microsandbox records the IP addresses returned for each domain. A domain rule matches a later connection only when that sandbox resolved the domain to that IP.
 
 An application that connects directly to a hard-coded IP does not match a domain rule. Use an IP or CIDR rule for that traffic.
 
 ## See also
 
 - [Network defenses](/security/network) explains rebinding protection and DNS-to-IP binding.
-- [TLS interception](/networking/tls) explains inspection for HTTPS and DNS over TLS.
+- [TLS MITM](/networking/tls) explains inspection for HTTPS and DNS over TLS.

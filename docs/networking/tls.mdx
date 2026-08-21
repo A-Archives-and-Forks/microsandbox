@@ -1,16 +1,16 @@
 ---
-title: TLS interception
+title: TLS MITM
 description: Inspect HTTPS traffic and manage certificate trust
 icon: "lock"
 ---
 
-<Tooltip tip="TLS interception and host CA trust are not available on Microsandbox Cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
+<Tooltip tip="TLS MITM and host CA trust are not available on microsandbox cloud."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
-TLS interception lets Microsandbox inspect HTTPS traffic. This enables URL policy checks, request logging, and secure secret injection for matching hosts.
+TLS MITM lets microsandbox inspect HTTPS traffic. This enables URL policy checks, request logging, and secure secret injection for matching hosts.
 
 ## How it works
 
-When interception is enabled, Microsandbox:
+When interception is enabled, microsandbox:
 
 1. Loads an interception certificate authority, or CA.
 2. Adds that CA to the guest's trust store.
@@ -171,13 +171,13 @@ msb run alpine --trust-host-cas -- apk update
 Host CA trust gives the guest every root certificate trusted by the host. Enable it only when you trust the host's CA store.
 </Note>
 
-## Interaction with TLS interception
+## Interaction with TLS MITM
 
-TLS interception covers configured ports, with port `443` enabled by default. TLS interception and host CA trust solve different problems:
+TLS MITM covers configured ports, with port `443` enabled by default. TLS MITM and host CA trust solve different problems:
 
 | Feature | Covers |
 | --- | --- |
-| TLS interception | Configured TLS ports and hosts that are not bypassed |
+| TLS MITM | Configured TLS ports and hosts that are not bypassed |
 | Host CA trust | Any guest connection that uses the guest's system trust store |
 
 Use both when you need HTTPS inspection and also need raw TLS connections to trust corporate certificates. Raw TLS includes bypassed hosts, custom TLS ports, and protocols such as Postgres or Redis over TLS.

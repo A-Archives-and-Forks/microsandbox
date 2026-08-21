@@ -1,6 +1,7 @@
 ---
 title: Overview
 description: What sandboxes are and how to configure them
+keywords: ["microVM sandboxes", "sandbox configuration", "sandbox lifecycle"]
 icon: "circle-info"
 ---
 
@@ -122,7 +123,7 @@ msb create python --name worker \
 
 `max_cpus` and `max_memory` reserve live resize headroom. They default to the
 starting `cpus` and `memory` values, so set them higher when a sandbox may need
-to grow later. See [Tuning](/sandboxes/tuning) for the full change
+to grow later. See [Live Modify](/sandboxes/tuning) for the full change
 model.
 
 Labels are arbitrary `key=value` metadata attached to a sandbox. They can be set
@@ -158,7 +159,7 @@ msb create ./alpine.qcow2 --name worker
 
 OCI images use a copy-on-write overlay so sandboxes can share cached base layers. Disk images are attached as block devices, so each sandbox should use its own disk image copy unless the image format handles its own snapshotting.
 
-See [Images](/images/overview) and [Disk Images](/images/disk-images) for the full image model.
+See [Images](/images/overview) for the full OCI and disk image model.
 
 ## Naming conflicts
 
@@ -203,7 +204,7 @@ When replacing a running sandbox, microsandbox attempts graceful shutdown before
 ## Where to go next
 
 - [Lifecycle](/sandboxes/lifecycle): start, stop, detach, wait, and remove sandboxes
-- [Tuning](/sandboxes/tuning): change settings after create
+- [Live Modify](/sandboxes/tuning): change settings after create
 - [Labels](/sandboxes/labels): organize, select, and attribute sandboxes
 - [Secrets](/sandboxes/secrets): inject credentials without exposing values
 - [Bootstrap](/sandboxes/bootstrap): prepare scripts, patches, and PID 1
