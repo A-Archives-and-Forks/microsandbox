@@ -9,32 +9,6 @@ SDKs surface failures through language-idiomatic error values. Match documented 
 ## Matching errors
 
 <CodeGroup>
-```rust Rust
-use microsandbox::{Sandbox, Error};
-
-async fn get_or_create(name: &str) -> Result<Sandbox, Error> {
-    match Sandbox::get(name).await {
-        Ok(handle) => handle.start().await,
-        Err(Error::SandboxNotFound(_)) => {
-            Sandbox::builder(name).image("python").create().await
-        }
-        Err(e) => Err(e),
-    }
-}
-
-match sb.exec("python", ["script.py"]).await {
-    Ok(output) if output.status().success => {
-        println!("{}", output.stdout()?);
-    }
-    Ok(output) => {
-        eprintln!("Exit {}: {}", output.status().code, output.stderr()?);
-    }
-    Err(Error::ExecTimeout(_)) => eprintln!("Timed out"),
-    Err(Error::Runtime(msg)) => eprintln!("Runtime: {msg}"),
-    Err(e) => return Err(e),
-}
-```
-
 ```typescript TypeScript
 import {
     ExecTimeoutError,
@@ -68,6 +42,32 @@ try {
     } else {
         throw e;
     }
+}
+```
+
+```rust Rust
+use microsandbox::{Sandbox, Error};
+
+async fn get_or_create(name: &str) -> Result<Sandbox, Error> {
+    match Sandbox::get(name).await {
+        Ok(handle) => handle.start().await,
+        Err(Error::SandboxNotFound(_)) => {
+            Sandbox::builder(name).image("python").create().await
+        }
+        Err(e) => Err(e),
+    }
+}
+
+match sb.exec("python", ["script.py"]).await {
+    Ok(output) if output.status().success => {
+        println!("{}", output.stdout()?);
+    }
+    Ok(output) => {
+        eprintln!("Exit {}: {}", output.status().code, output.stderr()?);
+    }
+    Err(Error::ExecTimeout(_)) => eprintln!("Timed out"),
+    Err(Error::Runtime(msg)) => eprintln!("Runtime: {msg}"),
+    Err(e) => return Err(e),
 }
 ```
 
@@ -139,6 +139,15 @@ case err != nil:
 Rust exposes a structured `ExecFailed` payload, and Go exposes the same detail on streaming execution events. Common failure kinds include `NotFound` (binary missing on `PATH`), `PermissionDenied`, `NotExecutable`, `BadCwd`, `BadArgs`, `ResourceLimit`, `UserSetupFailed`, `OutOfMemory`, `PtySetupFailed`, and `Other`.
 
 <CodeGroup>
+```typescript TypeScript
+try {
+    const output = await sb.exec("nonexistent");
+    // program ran, check output.success / output.code
+} catch (e) {
+    console.error("Program could not be started:", e);
+}
+```
+
 ```rust Rust
 use microsandbox::{protocol::exec::ExecFailureKind, Error};
 
@@ -159,15 +168,6 @@ match sb.exec("nonexistent", []).await {
         // payload.errno, payload.errno_name, payload.stage are also available
     }
     Err(e) => return Err(e),
-}
-```
-
-```typescript TypeScript
-try {
-    const output = await sb.exec("nonexistent");
-    // program ran, check output.success / output.code
-} catch (e) {
-    console.error("Program could not be started:", e);
 }
 ```
 
@@ -233,18 +233,6 @@ The CLI maps these kinds to POSIX-style exit codes: `127` for `NotFound`, `126` 
 Creating a sandbox with a name that's already in use (and without `replace`) surfaces a typed error you can branch on to decide whether to recover (resume the existing one, regenerate the name, etc.).
 
 <CodeGroup>
-```rust Rust
-use microsandbox::{Error, Sandbox};
-
-match Sandbox::builder("worker").image("alpine").create().await {
-    Ok(sb) => { /* ... */ }
-    Err(Error::SandboxAlreadyExists(name)) => {
-        eprintln!("sandbox {name} already exists; resume or pass .replace()");
-    }
-    Err(e) => return Err(e),
-}
-```
-
 ```typescript TypeScript
 import { Sandbox, SandboxAlreadyExistsError } from "microsandbox";
 
@@ -256,6 +244,18 @@ try {
     } else {
         throw e;
     }
+}
+```
+
+```rust Rust
+use microsandbox::{Error, Sandbox};
+
+match Sandbox::builder("worker").image("alpine").create().await {
+    Ok(sb) => { /* ... */ }
+    Err(Error::SandboxAlreadyExists(name)) => {
+        eprintln!("sandbox {name} already exists; resume or pass .replace()");
+    }
+    Err(e) => return Err(e),
 }
 ```
 
@@ -277,6 +277,16 @@ Pass `replace()` / `replace=True` / `--replace` / `WithReplace()` to stop the ex
 When a sandbox process exits before the agent relay is ready, creation returns or raises an SDK error. Rust exposes a structured `BootStart` payload with the failure stage and underlying message.
 
 <CodeGroup>
+```typescript TypeScript
+import { Sandbox } from "microsandbox";
+
+try {
+    const sb = await Sandbox.builder("svc").image("alpine").create();
+} catch (e) {
+    console.error("Sandbox failed to start:", e);
+}
+```
+
 ```rust Rust
 use microsandbox::{Error, Sandbox};
 
@@ -286,16 +296,6 @@ match Sandbox::builder("svc").image("alpine").create().await {
         eprintln!("Sandbox {name:?} failed at stage {:?}: {}", err.stage, err.message);
     }
     Err(e) => return Err(e),
-}
-```
-
-```typescript TypeScript
-import { Sandbox } from "microsandbox";
-
-try {
-    const sb = await Sandbox.builder("svc").image("alpine").create();
-} catch (e) {
-    console.error("Sandbox failed to start:", e);
 }
 ```
 
@@ -330,11 +330,24 @@ The CLI prints the startup failure before any captured log output so the immedia
 
 ## Resource cleanup
 
-<Tooltip tip="Rust drop and TypeScript await using do not stop microsandbox cloud sandboxes, because cloud handles do not own the host process; call stop() or remove() explicitly."><span className="msb-badge-limited">Limited on cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
+<Tooltip tip="TypeScript await using and Rust drop do not stop microsandbox cloud sandboxes, because cloud handles do not own the host process; call stop() or remove() explicitly."><span className="msb-badge-limited">Limited on cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
 
-Sandboxes hold compute resources, so release them when done. In Rust, `Drop` handles cleanup when the sandbox goes out of scope. In TypeScript, prefer `await using` (Node 22+) which calls `Sandbox.stop()` automatically when the binding leaves scope. In Go, pair every `CreateSandbox` with a `defer` that calls `Stop` + `Close`.
+Sandboxes hold compute resources, so release them when done. In TypeScript, prefer `await using` (Node 22+) which calls `Sandbox.stop()` automatically when the binding leaves scope. In Rust, `Drop` handles cleanup when the sandbox goes out of scope. In Go, pair every `CreateSandbox` with a `defer` that calls `Stop` + `Close`.
 
 <CodeGroup>
+```typescript TypeScript
+async function runTemporary(): Promise<string> {
+    // `await using` calls Sandbox.stop() when the binding leaves scope.
+    await using sb = await Sandbox.builder("temp")
+        .image("python")
+        .replace()
+        .create();
+
+    const out = await sb.exec("python", ["-c", "print('hello')"]);
+    return out.stdout();
+}
+```
+
 ```rust Rust
 use microsandbox::Sandbox;
 
@@ -348,19 +361,6 @@ use microsandbox::Sandbox;
 
     let output = sb.exec("python", ["-c", "print('hello')"]).await?;
 } // sb is dropped here, resources are cleaned up
-```
-
-```typescript TypeScript
-async function runTemporary(): Promise<string> {
-    // `await using` calls Sandbox.stop() when the binding leaves scope.
-    await using sb = await Sandbox.builder("temp")
-        .image("python")
-        .replace()
-        .create();
-
-    const out = await sb.exec("python", ["-c", "print('hello')"]);
-    return out.stdout();
-}
 ```
 
 ```python Python
