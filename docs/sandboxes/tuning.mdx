@@ -6,7 +6,7 @@ icon: "pen-to-square"
 
 <Tooltip tip="modify and live resize are not yet available on microsandbox cloud; create a replacement sandbox with the new configuration."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
-A running sandbox does not need to be replaced just because its workload changes. `modify` can resize the VM, update host-side metadata, rotate existing secrets, and change the defaults used by future commands while the sandbox stays up.
+You do not need to replace a running sandbox just because its workload changes. `modify` can resize the VM, update host-side metadata, rotate existing secrets, and change the defaults used by future commands while the sandbox stays up.
 
 <Frame>
   <img src="/images/live-modify.svg" alt="A terminal changes CPU, memory, and a label while the sandbox remains running" />
@@ -26,7 +26,7 @@ The live paths come first, but `modify` also plans changes that need a restart o
 | Root disk size | Restart or next start | Managed and flat OCI disks grow only; tmpfs changes on boot |
 | Named volumes, mount tmpfs, and user disk images | Outside `modify` | Capacity is managed where the storage is defined |
 
-The default policy applies only changes that can complete without restarting. If a patch contains one restart-required change, the whole patch is rejected and the old configuration stays intact.
+The default policy applies only changes that can complete without restarting. If a patch contains one restart-required change, microsandbox rejects the whole patch and the old configuration stays intact.
 
 ## Modify a running sandbox
 
@@ -71,7 +71,7 @@ plan, err := sb.Modify(ctx, m.ModifyOptions{
 ```
 </CodeGroup>
 
-The result is a modification plan showing what changed and whether each change was applied. CPU and memory can take a moment to converge inside the guest, but the new host limits are enforced immediately and the workload continues running.
+The result is a modification plan showing what changed and whether each change was applied. CPU and memory can take a moment to converge inside the guest. The new host limits take effect immediately, and the workload continues running.
 
 ## Reserve resize headroom
 
@@ -129,7 +129,7 @@ sb, err := m.CreateSandbox(ctx, "worker",
 
 The sandbox starts with two vCPUs and 1 GiB of memory, but it can grow live to eight vCPUs and 4 GiB. The ceilings default to the starting size, so omitting them leaves no live growth headroom.
 
-Reserving headroom is cheap: spare vCPUs stay parked, and spare memory is backed only when the guest uses it. You can lower CPU or memory live without pre-planning, then grow back up to the booted ceiling later.
+Reserving headroom is cheap: spare vCPUs stay parked, and microsandbox backs spare memory only when the guest uses it. You can lower CPU or memory live without pre-planning, then grow back up to the booted ceiling later.
 
 ## Preview before applying
 

@@ -10,7 +10,7 @@ One nice consequence: `exec` works even when a sandbox has networking fully disa
 
 ## Run the image default workload
 
-Sandbox creation is boot-only: configuring an image, ENTRYPOINT, or CMD does not execute that workload. Use the default-workload methods when you want the SDK to resolve the effective OCI `ENTRYPOINT + CMD` and run it. A configured CMD override replaces the image CMD, while the effective entrypoint is preserved. If neither field supplies an executable, these methods return the typed `NoDefaultCommand` error instead of falling back to a shell.
+Sandbox creation is boot-only: configuring an image, ENTRYPOINT, or CMD does not execute that workload. Use the default-workload methods when you want the SDK to resolve the effective OCI `ENTRYPOINT + CMD` and run it. A configured CMD override replaces the image CMD while preserving the effective entrypoint. If neither field supplies an executable, these methods return the typed `NoDefaultCommand` error instead of falling back to a shell.
 
 <CodeGroup>
 ```typescript TypeScript
