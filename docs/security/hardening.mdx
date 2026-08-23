@@ -65,7 +65,7 @@ The restricted profile is incompatible with workloads that need those capabiliti
 ## Mount least privilege
 
 - Mount only the directories a workload actually needs.
-- Use **read-only** mounts wherever write isn't required. Read-only is enforced host-side, so the guest can't remount around it.
+- Use **read-only** mounts wherever write isn't required. microsandbox enforces read-only host-side, so the guest can't remount around it.
 - Avoid sharing a writable volume across sandboxes, since a shared volume is a deliberate [isolation hole](/security/filesystem#sharing-storage-between-sandboxes).
 - Prefer a recent Linux kernel for writable bind mounts, where `openat2` containment is strongest.
 

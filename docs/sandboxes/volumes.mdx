@@ -41,7 +41,7 @@ err = volume.FS().WriteString(ctx, "state.json", `{"ready":true}`)
 ```
 </CodeGroup>
 
-The default volume is isolated to the authenticated cloud organization and cannot be removed. Default-volume lookup is deliberately unsupported on the local backend: forgetting an API key cannot expose or modify files from your machine. Named local volumes continue to live under `~/.microsandbox/volumes/` and retain their existing direct filesystem API.
+microsandbox isolates the default volume to the authenticated cloud organization, and you cannot remove it. microsandbox deliberately does not support default-volume lookup on the local backend: forgetting an API key cannot expose or modify files from your machine. Named local volumes continue to live under `~/.microsandbox/volumes/` and retain their existing direct filesystem API.
 
 ## Bind mounts
 
@@ -100,7 +100,7 @@ msb create python --name dev \
 
 </CodeGroup>
 
-Nested destinations are supported. microsandbox canonicalizes guest paths and always applies enclosing mounts before their children, so SDKs that accept unordered maps (such as Go) produce the same result regardless of map iteration order.
+microsandbox supports nested destinations. It canonicalizes guest paths and always applies enclosing mounts before their children. SDKs that accept unordered maps (such as Go) produce the same result regardless of map iteration order.
 
 Use `--mount-file` when you want to bind one host file instead of an entire directory.
 
@@ -115,7 +115,7 @@ msb create alpine --name config-reader \
 
 microsandbox manages named volumes and stores them by default under `~/.microsandbox/volumes/<name>/`. They persist independently of any sandbox, so you can create a volume, populate it, and mount it into different sandboxes over time.
 
-Named volumes can be directory-backed or disk-backed. Directory volumes mount through virtiofs. Disk volumes are raw ext4 disk images managed by microsandbox and mount through virtio-blk.
+Named volumes can be directory-backed or disk-backed. Directory volumes mount through virtiofs. Disk volumes are raw ext4 disk images that microsandbox manages, and they mount through virtio-blk.
 
 CLI named mounts are idempotent. `-v name:/path` and `--mount-named name:/path` create a directory-backed named volume if it does not already exist, then mount it. If the volume already exists, microsandbox reuses it when the requested storage settings are compatible and errors when they are not. Use `--mount-named name:/path:kind=disk,size=20G` to create or reuse a disk-backed named volume from the mount flag itself.
 
@@ -243,7 +243,7 @@ msb create docker:dind --name docker-demo \
 
 ### Sharing and host-side access
 
-Mount the same directory-backed named volume into multiple sandboxes when they need to share files. Use `readonly` on consumers that should not write. Disk-backed named volumes are attached as block devices; use one writable sandbox at a time, or read-only mounts where sharing is intended.
+Mount the same directory-backed named volume into multiple sandboxes when they need to share files. Use `readonly` on consumers that should not write. microsandbox attaches disk-backed named volumes as block devices; use one writable sandbox at a time, or read-only mounts where sharing is intended.
 
 Directory-backed named volumes are also accessible without a running sandbox, so you can pre-populate a cache or inspect output after the sandbox stops. Local volumes expose their host path directly; cloud default and managed directory volumes use the same volume filesystem API shown above. Disk-backed local volumes store guest data inside `disk.raw`; host filesystem helpers operate on the managed volume directory, not the filesystem inside the disk image.
 
@@ -281,7 +281,7 @@ msb volume rm old-cache
 
 <Tooltip tip="On microsandbox cloud, the host path resolves against your organization's host volume, not the computer running the SDK or CLI."><span className="msb-badge-limited">Limited on cloud <Icon icon="circle-info" size={11} /></span></Tooltip>
 
-Disk-image volumes attach a host disk image as a virtio-blk device and mount its inner filesystem at a guest path. Use them when you want persistent state isolated from ordinary host filesystem metadata, or when distributing a prebuilt filesystem image. The disk format defaults from the file extension (`.qcow2`, `.raw`, `.vmdk`; otherwise raw), and the inner filesystem type is auto-detected unless you set `fstype`.
+Disk-image volumes attach a host disk image as a virtio-blk device and mount its inner filesystem at a guest path. Use them when you want persistent state isolated from ordinary host filesystem metadata, or when distributing a prebuilt filesystem image. The disk format defaults from the file extension (`.qcow2`, `.raw`, `.vmdk`; otherwise raw). microsandbox auto-detects the inner filesystem type unless you set `fstype`.
 
 <CodeGroup>
 ```typescript TypeScript
@@ -397,7 +397,7 @@ CLI mount flags use `SOURCE:DEST[:OPTIONS]`. The `:` before `OPTIONS` starts the
 
 ## Combining mounts
 
-Mount flags may be repeated, so a sandbox can combine host directories, individual files, named volumes, disk images, and tmpfs scratch space.
+You can repeat mount flags, so a sandbox can combine host directories, individual files, named volumes, disk images, and tmpfs scratch space.
 
 <CodeGroup>
 ```typescript TypeScript

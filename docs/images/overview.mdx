@@ -53,7 +53,7 @@ sb, err := m.CreateSandbox(ctx, "worker",
 </CodeGroup>
 
 <Tip>
-  Once an image reference is resolved, microsandbox pins the exact layers. `python` is resolved to a specific set of immutable layers at first pull. Subsequent `start()` calls use the pinned layers without re-resolving the mutable tag, so your sandbox is reproducible even if the upstream tag moves.
+  Once microsandbox resolves an image reference, it pins the exact layers. At first pull, `python` resolves to a specific set of immutable layers. Subsequent `start()` calls use the pinned layers without re-resolving the mutable tag, so your sandbox is reproducible even if the upstream tag moves.
 </Tip>
 
 ### Private registries
@@ -143,7 +143,7 @@ For registries using self-signed or internal CA certificates, point `ca_certs` t
 }
 ```
 
-microsandbox adds these certificates to the default system roots, so public registries continue to work normally. The same roots can be supplied per-sandbox through the SDK instead: `caCerts` in TypeScript, `ca_certs` in Rust, `registry_ca_certs` in Python, and `WithRegistryCACerts` / `WithRegistryCACertsPath` in Go.
+microsandbox adds these certificates to the default system roots, so public registries continue to work normally. You can also supply the same roots per-sandbox through the SDK: `caCerts` in TypeScript, `ca_certs` in Rust, `registry_ca_certs` in Python, and `WithRegistryCACerts` / `WithRegistryCACertsPath` in Go.
 
 #### Combined configuration
 
@@ -164,7 +164,7 @@ microsandbox adds these certificates to the default system roots, so public regi
 }
 ```
 
-These settings can also be set per-sandbox via the SDK, overriding global config:
+You can also set these per-sandbox via the SDK, overriding global config:
 
 <CodeGroup>
 ```typescript TypeScript
