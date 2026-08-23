@@ -37,6 +37,14 @@ This patch doubles the running sandbox's CPU and memory and updates a label in t
 msb modify worker --cpus 4 --memory 2G --label tier=web
 ```
 
+```typescript TypeScript
+const plan = await sandbox.modify({
+  cpus: 4,
+  memory: 2048,
+  labels: { tier: "web" },
+});
+```
+
 ```rust Rust
 let plan = sb.modify()
     .cpus(4)
@@ -44,14 +52,6 @@ let plan = sb.modify()
     .label("tier", "web")
     .apply()
     .await?;
-```
-
-```typescript TypeScript
-const plan = await sandbox.modify({
-  cpus: 4,
-  memory: 2048,
-  labels: { tier: "web" },
-});
 ```
 
 ```python Python
@@ -84,6 +84,16 @@ msb create python --name worker \
   --max-cpus 8 --max-memory 4G
 ```
 
+```typescript TypeScript
+await using sandbox = await Sandbox.builder("worker")
+  .image("python")
+  .cpus(2)
+  .memory(1024)
+  .maxCpus(8)
+  .maxMemory(4096)
+  .create();
+```
+
 ```rust Rust
 let sb = Sandbox::builder("worker")
     .image("python")
@@ -93,16 +103,6 @@ let sb = Sandbox::builder("worker")
     .max_memory(4096)
     .create()
     .await?;
-```
-
-```typescript TypeScript
-await using sandbox = await Sandbox.builder("worker")
-  .image("python")
-  .cpus(2)
-  .memory(1024)
-  .maxCpus(8)
-  .maxMemory(4096)
-  .create();
 ```
 
 ```python Python
@@ -140,18 +140,18 @@ Use a dry run when a patch mixes settings or you are unsure whether a restart is
 msb modify worker --max-memory 16G --dry-run
 ```
 
-```rust Rust
-let plan = sb.modify()
-    .max_memory(16_384)
-    .dry_run()
-    .await?;
-```
-
 ```typescript TypeScript
 const plan = await sandbox.modify({
   maxMemory: 16_384,
   dryRun: true,
 });
+```
+
+```rust Rust
+let plan = sb.modify()
+    .max_memory(16_384)
+    .dry_run()
+    .await?;
 ```
 
 ```python Python
@@ -186,16 +186,16 @@ Raise or lower CPU and memory while the workload runs:
 msb modify worker --cpus 4 --memory 2G
 ```
 
+```typescript TypeScript
+const plan = await sandbox.modify({ cpus: 4, memory: 2048 });
+```
+
 ```rust Rust
 let plan = sb.modify()
     .cpus(4)
     .memory(2048)
     .apply()
     .await?;
-```
-
-```typescript TypeScript
-const plan = await sandbox.modify({ cpus: 4, memory: 2048 });
 ```
 
 ```python Python
@@ -221,19 +221,19 @@ Labels are host-side metadata, so adding, changing, or removing one is immediate
 msb modify worker --label tier=web --label-rm stale
 ```
 
+```typescript TypeScript
+const plan = await sandbox.modify({
+  labels: { tier: "web" },
+  labelsRemove: ["stale"],
+});
+```
+
 ```rust Rust
 let plan = sb.modify()
     .label("tier", "web")
     .remove_label("stale")
     .apply()
     .await?;
-```
-
-```typescript TypeScript
-const plan = await sandbox.modify({
-  labels: { tier: "web" },
-  labelsRemove: ["stale"],
-});
 ```
 
 ```python Python
@@ -263,6 +263,15 @@ msb modify worker --env MODE=prod --workdir /app
 msb exec worker -- printenv MODE
 ```
 
+```typescript TypeScript
+await sandbox.modify({
+  env: { MODE: "prod" },
+  workdir: "/app",
+});
+
+const output = await sandbox.exec("printenv", ["MODE"]);
+```
+
 ```rust Rust
 sb.modify()
     .env("MODE", "prod")
@@ -271,15 +280,6 @@ sb.modify()
     .await?;
 
 let output = sb.exec("printenv", ["MODE"]).await?;
-```
-
-```typescript TypeScript
-await sandbox.modify({
-  env: { MODE: "prod" },
-  workdir: "/app",
-});
-
-const output = await sandbox.exec("printenv", ["MODE"]);
 ```
 
 ```python Python
@@ -307,6 +307,17 @@ Rotating the value of an existing secret is live because substitution happens at
 msb modify worker --secret GITHUB_TOKEN@api.github.com
 ```
 
+```typescript TypeScript
+const plan = await sandbox.modify({
+  secrets: {
+    GITHUB_TOKEN: {
+      env: "GITHUB_TOKEN",
+      allowedHosts: ["api.github.com"],
+    },
+  },
+});
+```
+
 ```rust Rust
 use microsandbox::sandbox::SecretSource;
 
@@ -317,17 +328,6 @@ let plan = sb.modify()
         .allow_host("api.github.com"))
     .apply()
     .await?;
-```
-
-```typescript TypeScript
-const plan = await sandbox.modify({
-  secrets: {
-    GITHUB_TOKEN: {
-      env: "GITHUB_TOKEN",
-      allowedHosts: ["api.github.com"],
-    },
-  },
-});
 ```
 
 ```python Python
@@ -372,6 +372,18 @@ msb modify worker --max-memory 16G --next-start
 msb modify worker --root-disk 8G --restart
 ```
 
+```typescript TypeScript
+await sandbox.modify({
+  maxMemory: 16_384,
+  policy: "next_start",
+});
+
+await sandbox.modify({
+  rootDiskSize: 8192,
+  policy: "restart",
+});
+```
+
 ```rust Rust
 sb.modify()
     .max_memory(16_384)
@@ -384,18 +396,6 @@ sb.modify()
     .restart()
     .apply()
     .await?;
-```
-
-```typescript TypeScript
-await sandbox.modify({
-  maxMemory: 16_384,
-  policy: "next_start",
-});
-
-await sandbox.modify({
-  rootDiskSize: 8192,
-  policy: "restart",
-});
 ```
 
 ```python Python
@@ -431,4 +431,4 @@ Root disk resizing remains conservative: managed and flat OCI disks grow only, t
 
 ## Reference
 
-For every CLI flag and result state, see [`msb modify`](/cli/sandbox-commands#msb-modify). The SDK sandbox references expose the same planner and policies for [Rust](/sdk/rust/sandbox), [TypeScript](/sdk/typescript/sandbox), [Python](/sdk/python/sandbox), and [Go](/sdk/go/sandbox).
+For every CLI flag and result state, see [`msb modify`](/cli/sandbox-commands#msb-modify). The SDK sandbox references expose the same planner and policies for [TypeScript](/sdk/typescript/sandbox), [Rust](/sdk/rust/sandbox), [Python](/sdk/python/sandbox), and [Go](/sdk/go/sandbox).

@@ -30,6 +30,15 @@ Cloud selection and credentials are separate. `MSB_API_KEY` does not select clou
 Programmatic selection wins over environment and profile resolution. Use it when the application should decide regardless of where it is launched:
 
 <CodeGroup>
+```typescript TypeScript
+import { setDefaultBackend } from "microsandbox";
+
+setDefaultBackend({ kind: "cloud", apiKey: process.env.MSB_API_KEY! });
+
+// Or force the local runtime.
+setDefaultBackend("local");
+```
+
 ```rust Rust
 use microsandbox::{set_default_backend, CloudBackend, LocalBackend};
 
@@ -41,15 +50,6 @@ set_default_backend(CloudBackend::with_api_key(api_key)?);
 
 // Or force the local runtime.
 set_default_backend(LocalBackend::lazy());
-```
-
-```typescript TypeScript
-import { setDefaultBackend } from "microsandbox";
-
-setDefaultBackend({ kind: "cloud", apiKey: process.env.MSB_API_KEY! });
-
-// Or force the local runtime.
-setDefaultBackend("local");
 ```
 
 ```python Python
@@ -123,17 +123,17 @@ msb context --format json
 Use the SDK accessors to inspect the active backend without exposing its API key. Detailed backend info includes the kind, cloud API URL, selection source, and profile when applicable:
 
 <CodeGroup>
-```rust Rust
-let info = microsandbox::default_backend_info();
-println!("{}", info.kind.as_str());
-println!("{}", sandbox.backend_kind().as_str());
-```
-
 ```typescript TypeScript
 import { defaultBackendInfo } from "microsandbox";
 
 console.log(defaultBackendInfo());
 console.log(sandbox.backendKind);
+```
+
+```rust Rust
+let info = microsandbox::default_backend_info();
+println!("{}", info.kind.as_str());
+println!("{}", sandbox.backend_kind().as_str());
 ```
 
 ```python Python
