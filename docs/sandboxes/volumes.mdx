@@ -387,7 +387,7 @@ For stronger in-guest hardening, create the sandbox with the restricted security
 
 Bind mounts and directory-backed named volumes normally present host files without a per-file metadata override using the sandbox user's fallback identity. Set a mount owner when those files should consistently appear as another guest `(uid, gid)` pair. This changes only the guest view: it does not `chown` the host files or create per-file metadata overrides, and an existing per-file override still takes precedence.
 
-Both IDs are required together and may range from `0` through `4294967295`. Mount owners require stat virtualization, so they cannot be combined with `stat-virt=off`, tmpfs, host disk images, or disk-backed named volumes. The local backend supports this policy; the Cloud backend currently rejects it until ownership capability negotiation is available.
+Both IDs are required together and may range from `0` through `4294967295`. Mount owners require stat virtualization, so they cannot be combined with `stat-virt=off`, tmpfs, host disk images, or disk-backed named volumes. The local backend supports this policy; the cloud backend currently rejects it until ownership capability negotiation is available.
 
 ### CLI syntax and flags
 
