@@ -787,7 +787,6 @@ Check whether a path exists.
 
 ## VolumeHandle
 
-
 <p className="msb-backref">Returned by <a href="#volume-get">Volume.get()</a> · <a href="#volume-list">Volume.list()</a></p>
 
 A metadata and lifecycle handle for an existing volume.
@@ -872,7 +871,6 @@ Delete this volume (live handles only; throws on read-only handles)
 
 ## VolumeFsReadStream
 
-
 <p className="msb-backref">Returned by <a href="#volumefs">VolumeFs.readStream()</a></p>
 
 A streaming reader over a volume file. Implements `AsyncIterable<Uint8Array>` and `AsyncDisposable`, so it works with `for await` and `using`.
@@ -926,7 +924,6 @@ Mark the stream done (for `using`)
 `Promise<void>`
 
 ## VolumeFsWriteSink
-
 
 <p className="msb-backref">Returned by <a href="#volumefs">VolumeFs.writeStream()</a></p>
 
