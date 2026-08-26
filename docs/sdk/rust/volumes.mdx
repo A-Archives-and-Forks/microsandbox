@@ -1510,10 +1510,7 @@ Validate and materialize the mount. Usually called internally by `SandboxBuilder
 
 ## NamedVolumeBuilder
 
-Sub-builder for [`MountBuilder::named_with()`](#mount-named_with). Selects sandbox-time existence behavior and creation metadata.
-
 <p className="msb-backref">Used by <a href="#mount-named_with">MountBuilder::named_with()</a></p>
-
 
 Sub-builder for [`MountBuilder::named_with()`](#mount-named_with). Selects the sandbox-time existence behavior and, for `create` / `ensure_exists`, the creation metadata. Defaults to `existing` and directory-backed.
 
@@ -1655,11 +1652,9 @@ Attach a label to a newly-created volume. For `ensure_exists`, requested labels 
 
 ## VolumeFsReadStream
 
-
-A streaming reader for file data from a local volume directory. Returned by [`VolumeFs::read_stream()`](#fs-read_stream).
-
 <p className="msb-backref">Returned by <a href="#fs-read_stream">VolumeFs::read_stream()</a></p>
 
+A streaming reader for file data from a local volume directory.
 
 #### <span className="msb-recv">stream.</span><span className="msb-hn">recv()</span>
 
@@ -1687,11 +1682,9 @@ Read the rest into one buffer
 
 ## VolumeFsWriteSink
 
-
-A streaming writer for file data to a local volume directory. Returned by [`VolumeFs::write_stream()`](#fs-write_stream).
-
 <p className="msb-backref">Returned by <a href="#fs-write_stream">VolumeFs::write_stream()</a></p>
 
+A streaming writer for file data to a local volume directory.
 
 #### <span className="msb-recv">sink.</span><span className="msb-hn">write()</span>
 
