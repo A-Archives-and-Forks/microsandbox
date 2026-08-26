@@ -35,7 +35,7 @@ defer func() {
 
 </Accordion>
 
-Create and boot a new sandbox. Pulls the image if needed, boots the VM, starts the guest agent, and waits until it is ready to accept commands. Sandbox names must be non-empty and no longer than 128 UTF-8 bytes. The returned [`*Sandbox`](#methods) owns the VM process. Call `Close` (or `Stop` + `Close`) when done. See [Options](#options) for all configuration knobs.
+Create and boot a new sandbox. Pulls the image if needed, boots the VM, starts the guest agent, and waits until it is ready to accept commands. Sandbox names must be non-empty and no longer than 128 UTF-8 bytes. The returned [`*Sandbox`](#sandbox) owns the VM process. Call `Close` (or `Stop` + `Close`) when done. See [Options](#options) for all configuration knobs.
 
 <p className="msb-label">Parameters</p>
 
@@ -58,7 +58,7 @@ Create and boot a new sandbox. Pulls the image if needed, boots the VM, starts t
 
 <div className="msb-params">
   <div className="msb-param">
-    <div className="msb-param-key"><a className="msb-type" href="#methods">*Sandbox</a></div>
+    <div className="msb-param-key"><a className="msb-type" href="#sandbox">*Sandbox</a></div>
     <div className="msb-param-desc">Running sandbox. Safe for concurrent use from multiple goroutines.</div>
   </div>
   <div className="msb-param">
@@ -199,7 +199,7 @@ sb, err := m.StartSandbox(ctx, "api")
 
 </Accordion>
 
-Restart a previously stopped sandbox. The VM reboots using the persisted configuration and returns a live [`*Sandbox`](#methods).
+Restart a previously stopped sandbox. The VM reboots using the persisted configuration and returns a live [`*Sandbox`](#sandbox).
 
 <p className="msb-label">Parameters</p>
 
@@ -214,7 +214,7 @@ Restart a previously stopped sandbox. The VM reboots using the persisted configu
 
 <div className="msb-params">
   <div className="msb-param">
-    <div className="msb-param-key"><a className="msb-type" href="#methods">*Sandbox</a></div>
+    <div className="msb-param-key"><a className="msb-type" href="#sandbox">*Sandbox</a></div>
     <div className="msb-param-desc">Running sandbox.</div>
   </div>
 </div>
@@ -240,7 +240,7 @@ Boot a stopped sandbox in detached mode. The VM keeps running after the returned
 
 <div className="msb-params">
   <div className="msb-param">
-    <div className="msb-param-key"><a className="msb-type" href="#methods">*Sandbox</a></div>
+    <div className="msb-param-key"><a className="msb-type" href="#sandbox">*Sandbox</a></div>
     <div className="msb-param-desc">Running sandbox in detached mode.</div>
   </div>
 </div>
@@ -1723,7 +1723,7 @@ Append credential secrets to the sandbox. Secrets never enter the VM; the networ
 
 <div className="msb-params">
   <div className="msb-param">
-    <div className="msb-param-key"><code>secrets</code><a className="msb-type" href="/sdk/go/secrets#secretentry">...SecretEntry</a></div>
+    <div className="msb-param-key"><code>secrets</code><a className="msb-type" href="/sdk/go/secrets#secretentrystruct">...SecretEntry</a></div>
     <div className="msb-param-desc">Secret injection entries.</div>
   </div>
 </div>
@@ -2319,7 +2319,7 @@ Reattach to the running sandbox
 
 <p className="msb-label">Returns</p>
 
-`(*`[`Sandbox`](#methods)`, error)`
+`(*`[`Sandbox`](#sandbox)`, error)`
 
 #### <span className="msb-recv">h.</span><span className="msb-hn">Start()</span>
 
@@ -2331,7 +2331,7 @@ Boot a stopped sandbox. The returned local handle is attached; a cloud handle do
 
 <p className="msb-label">Returns</p>
 
-`(*`[`Sandbox`](#methods)`, error)`
+`(*`[`Sandbox`](#sandbox)`, error)`
 
 #### <span className="msb-recv">h.</span><span className="msb-hn">StartDetached()</span>
 
@@ -2343,7 +2343,7 @@ Boot a stopped sandbox in detached mode
 
 <p className="msb-label">Returns</p>
 
-`(*`[`Sandbox`](#methods)`, error)`
+`(*`[`Sandbox`](#sandbox)`, error)`
 
 #### <span className="msb-recv">h.</span><span className="msb-hn">Stop()</span>
 
@@ -2723,7 +2723,7 @@ The full configuration of a sandbox. Most callers build a sandbox via `CreateSan
 | PortsUDP | `map[uint16]uint16` | Host to guest UDP port mappings |
 | PortBindings | [`[]PortBinding`](/sdk/go/networking#portbinding) | Port mappings with explicit bind addresses |
 | Network | [`*NetworkConfig`](/sdk/go/networking#networkconfig) | Network policy and configuration |
-| Secrets | [`[]SecretEntry`](/sdk/go/secrets#secretentry) | Secret injection entries |
+| Secrets | [`[]SecretEntry`](/sdk/go/secrets#secretentrystruct) | Secret injection entries |
 | Patches | [`[]PatchConfig`](#patchconfig) | Rootfs modifications applied before boot |
 | Volumes | `map[string]MountConfig` | Volume mounts keyed by guest path |
 
