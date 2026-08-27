@@ -687,6 +687,10 @@ impl LocalBackend {
                     sandbox_entity::Column::ActiveConfig,
                     Expr::value(Option::<String>::None),
                 )
+                .col_expr(
+                    sandbox_entity::Column::NetworkSlot,
+                    Expr::value(Option::<u16>::None),
+                )
                 .col_expr(sandbox_entity::Column::UpdatedAt, Expr::value(now))
                 .filter(sandbox_entity::Column::Id.eq(sandbox_id))
                 .filter(
@@ -714,10 +718,14 @@ impl LocalBackend {
                     sandbox_entity::Column::UpdatedAt,
                     Expr::value(chrono::Utc::now().naive_utc()),
                 );
-            if Self::sandbox_status_clears_active_config(status) {
+            if !status.has_active_runtime_state() {
                 update = update.col_expr(
                     sandbox_entity::Column::ActiveConfig,
                     Expr::value(Option::<String>::None),
+                );
+                update = update.col_expr(
+                    sandbox_entity::Column::NetworkSlot,
+                    Expr::value(Option::<u16>::None),
                 );
             }
             update
@@ -750,14 +758,6 @@ impl LocalBackend {
             .await?;
 
         Ok(())
-    }
-
-    /// Whether a status transition clears the persisted active config.
-    fn sandbox_status_clears_active_config(status: SandboxStatus) -> bool {
-        matches!(
-            status,
-            SandboxStatus::Created | SandboxStatus::Stopped | SandboxStatus::Crashed
-        )
     }
 
     /// Move a Running row to Draining (no-op for any other status).
@@ -1110,9 +1110,7 @@ mod tests {
     use microsandbox_db::entity::run as run_entity;
     use microsandbox_db::pool::DbPools;
     use microsandbox_migration::{Migrator, MigratorTrait};
-    #[cfg(unix)]
-    use sea_orm::{ColumnTrait, QueryFilter};
-    use sea_orm::{EntityTrait, Set};
+    use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, Set};
     use tempfile::tempdir;
 
     use super::sandbox_entity;
@@ -1317,6 +1315,16 @@ mod tests {
             .unwrap()
             .last_insert_id;
 
+        sandbox_entity::Entity::update_many()
+            .col_expr(
+                sandbox_entity::Column::NetworkSlot,
+                sea_orm::sea_query::Expr::value(Some(7_u16)),
+            )
+            .filter(sandbox_entity::Column::Id.eq(sandbox_id))
+            .exec(pools.write())
+            .await
+            .unwrap();
+
         let sandbox = sandbox_entity::Entity::find_by_id(sandbox_id)
             .one(pools.write())
             .await
@@ -1348,6 +1356,7 @@ mod tests {
         .await
         .unwrap();
         assert_eq!(reconciled.status, SandboxStatus::Crashed);
+        assert_eq!(reconciled.network_slot, None);
         #[cfg(unix)]
         for path in [
             &socket_paths.agent,
@@ -1370,6 +1379,38 @@ mod tests {
             Some(run_entity::TerminationReason::InternalError)
         );
         assert!(run.terminated_at.is_some());
+    }
+
+    #[tokio::test]
+    async fn terminal_status_releases_network_slot() {
+        let temp = tempdir().unwrap();
+        let db_path = temp.path().join("test.db");
+        let pools = open_test_pools(&db_path).await;
+
+        let sandbox_id =
+            LocalBackend::insert_sandbox_record(pools.write(), &test_config("slot-release"))
+                .await
+                .unwrap();
+        sandbox_entity::Entity::update_many()
+            .col_expr(
+                sandbox_entity::Column::NetworkSlot,
+                sea_orm::sea_query::Expr::value(Some(11_u16)),
+            )
+            .filter(sandbox_entity::Column::Id.eq(sandbox_id))
+            .exec(pools.write())
+            .await
+            .unwrap();
+
+        LocalBackend::update_sandbox_status(pools.write(), sandbox_id, SandboxStatus::Stopped)
+            .await
+            .unwrap();
+
+        let sandbox = sandbox_entity::Entity::find_by_id(sandbox_id)
+            .one(pools.read())
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(sandbox.network_slot, None);
     }
 
     #[tokio::test]
