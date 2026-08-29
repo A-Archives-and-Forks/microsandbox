@@ -802,7 +802,7 @@ Restart with explicit lifecycle controls. `RestartOptions` defaults to graceful 
 async fn destroy(&self) -> MicrosandboxResult<()>
 ```
 
-Gracefully stop and remove this exact sandbox. Unlike [`remove_persisted()`](#remove-persisted), `destroy` accepts a running sandbox and converges it through shutdown before deleting persisted state.
+Gracefully stop and remove this exact sandbox. Unlike [`remove_persisted()`](#sb-remove_persisted), `destroy` accepts a running sandbox and converges it through shutdown before deleting persisted state.
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">destroy_with()</span>
 
@@ -911,7 +911,7 @@ Boot the sandbox. Local handles use attached mode and stop the sandbox when the 
 async fn connect_or_create(self) -> MicrosandboxResult<Sandbox>
 ```
 
-Converge on the current persisted sandbox by name. The method connects when it is running, waits through `Starting`, starts it when it is `Created`, `Stopped`, or `Crashed`, and creates it only when the name is absent. Builder configuration is used only for creation; an existing sandbox keeps its persisted configuration. Concurrent creators and starters converge on the winning identity. Combining this method with [`replace()`](#replace) returns `InvalidConfig`.
+Converge on the current persisted sandbox by name. The method connects when it is running, waits through `Starting`, starts it when it is `Created`, `Stopped`, or `Crashed`, and creates it only when the name is absent. Builder configuration is used only for creation; an existing sandbox keeps its persisted configuration. Concurrent creators and starters converge on the winning identity. Combining this method with [`replace()`](#sandbox-replace) returns `InvalidConfig`.
 
 <p className="msb-label">Returns</p>
 
@@ -2303,7 +2303,7 @@ Connect to this exact sandbox when it is running, wait through `Starting`, or st
 async fn connect_or_start_detached(&self) -> MicrosandboxResult<Sandbox>
 ```
 
-Use the same state convergence as [`connect_or_start()`](#connect-or-start), but start a local stopped sandbox in detached/background mode. Connecting to an already-running sandbox never changes its ownership.
+Use the same state convergence as [`connect_or_start()`](#h-connect_or_start), but start a local stopped sandbox in detached/background mode. Connecting to an already-running sandbox never changes its ownership.
 
 #### <span className="msb-recv">h.</span><span className="msb-hn">created_at()</span>
 
@@ -2519,7 +2519,7 @@ Gracefully restart this exact sandbox with default options.
 async fn restart_with(&self, options: RestartOptions) -> MicrosandboxResult<Sandbox>
 ```
 
-Restart with explicit force, shutdown timeout, and detached-start controls. See [`sb.restart_with()`](#restart-with) for state behavior and defaults.
+Restart with explicit force, shutdown timeout, and detached-start controls. See [`sb.restart_with()`](#sb-restart_with) for state behavior and defaults.
 
 #### <span className="msb-recv">h.</span><span className="msb-hn">destroy()</span>
 
@@ -2535,7 +2535,7 @@ Gracefully stop and remove this exact sandbox. A stale handle cannot destroy a r
 async fn destroy_with(&self, options: DestroyOptions) -> MicrosandboxResult<()>
 ```
 
-Destroy with explicit force and shutdown-timeout controls. See [`sb.destroy_with()`](#destroy-with) for defaults.
+Destroy with explicit force and shutdown-timeout controls. See [`sb.destroy_with()`](#sb-destroy_with) for defaults.
 
 #### <span className="msb-recv">h.</span><span className="msb-hn">status()</span>
 

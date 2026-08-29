@@ -956,7 +956,7 @@ Build and boot the sandbox. By default, a local handle is attached and stops whe
 connectOrCreate(): Promise<Sandbox>
 ```
 
-Converge on the current persisted sandbox by name. The method connects when it is running, waits through `starting`, starts it when it is `created`, `stopped`, or `crashed`, and creates it only when the name is absent. Builder settings apply only when creation is necessary; existing persisted configuration always wins. Concurrent callers converge on the winning identity. Calling [`replace()`](#replace) or [`replaceWithTimeout()`](#replacewithtimeout) on this builder is invalid.
+Converge on the current persisted sandbox by name. The method connects when it is running, waits through `starting`, starts it when it is `created`, `stopped`, or `crashed`, and creates it only when the name is absent. Builder settings apply only when creation is necessary; existing persisted configuration always wins. Concurrent callers converge on the winning identity. Calling [`replace()`](#sandboxbuilder-replace) or [`replaceWithTimeout()`](#sandboxbuilder-replacewithtimeout) on this builder is invalid.
 
 <p className="msb-label">Returns</p>
 
@@ -2531,7 +2531,7 @@ Wait without a built-in timeout until this exact sandbox reaches `status`, retur
 restart(options?: { force?: boolean; timeoutMs?: number; detached?: boolean }): Promise<Sandbox>
 ```
 
-Restart this exact sandbox with the same state and option semantics as [`sandbox.restart()`](#restart).
+Restart this exact sandbox with the same state and option semantics as [`sandbox.restart()`](#sandbox-restart).
 
 #### <span className="msb-recv">handle.</span><span className="msb-hn">destroy()</span>
 
