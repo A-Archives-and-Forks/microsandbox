@@ -6,7 +6,7 @@ keywords: ["Go SDK", "Go sandbox", "microsandbox sandbox"]
 
 Create and control a microVM sandbox: boot it from an image, run commands, stream logs and metrics, then shut it down. See [Overview](/sandboxes/overview) for configuration examples and [Lifecycle](/sandboxes/lifecycle) for state management.
 
-## Lifecycle convergence
+## Reuse and restart sandboxes
 
 ```go
 ConnectOrCreateSandbox(ctx, name, opts...) (*Sandbox, error)
@@ -18,7 +18,9 @@ sandbox.ID() string
 handle.ID() string
 ```
 
-`ConnectOrCreateSandbox` converges on the current persisted sandbox by name and uses options only when it creates. Receiver lifecycle operations are bound to the stable opaque `ID`; a stale receiver returns `ErrSandboxReplaced` instead of acting on a replacement that reused the name. `Sandbox` also exposes `WaitForStatus`, `Restart`, and `Destroy`. See [Reuse or create a named sandbox](/sandboxes/lifecycle#reuse-or-create-a-named-sandbox) for state behavior and examples.
+Use `ConnectOrCreateSandbox` when a named sandbox might already exist. It connects to a running sandbox, starts a stopped or crashed sandbox, and creates one only when the name is unused. Options apply only to a new sandbox.
+
+Lifecycle methods on a `Sandbox` or `SandboxHandle` stay attached to its opaque `ID`. If the name is removed and reused, an old receiver returns `ErrSandboxReplaced` instead of acting on the replacement. See [Reuse or create a named sandbox](/sandboxes/lifecycle#reuse-or-create-a-named-sandbox) for examples.
 
 
 ## Functions
@@ -87,11 +89,11 @@ Create and boot a new sandbox. Pulls the image if needed, boots the VM, starts t
 func ConnectOrCreateSandbox(ctx context.Context, name string, opts ...SandboxOption) (*Sandbox, error)
 ```
 
-Converge on the current persisted sandbox by name. The function connects when it is running, waits through `SandboxStatusStarting`, starts it when it is created, stopped, or crashed, and creates it only when the name is absent. Options apply only to creation; an existing sandbox keeps its persisted configuration. Concurrent callers converge on the winning identity. `WithReplace` and `WithReplaceWithTimeout` are invalid with this function.
+Reuse or create the sandbox with this name. The function connects when it is running, waits while it is starting, starts it when it is created, stopped, or crashed, and creates it only when the name is unused. Options apply only to a new sandbox. Concurrent callers reuse the same sandbox. `WithReplace` and `WithReplaceWithTimeout` are invalid with this function.
 
 <p className="msb-label">Parameters</p>
 
-- `ctx`: controls this convergence operation; cancellation does not stop a sandbox already returned.
+- `ctx`: controls this operation; cancellation does not stop a sandbox already returned.
 - `name`: reusable sandbox name, up to 128 UTF-8 bytes.
 - `opts`: the same creation options accepted by [`CreateSandbox`](#m-createsandbox), used only when creation is necessary.
 
@@ -1893,7 +1895,7 @@ Force-kill instead of requesting graceful shutdown during `Restart`.
 func WithRestartTimeout(timeout time.Duration) RestartOption
 ```
 
-Set the graceful-shutdown convergence window used by `Restart`. The default is ten seconds.
+Set how long `Restart` waits for graceful shutdown before it times out. The default is ten seconds.
 
 #### <span className="msb-recv"></span><span className="msb-hn">WithRestartDetached()</span>
 
@@ -1917,7 +1919,7 @@ Force-kill instead of requesting graceful shutdown during `Destroy`.
 func WithDestroyTimeout(timeout time.Duration) DestroyOption
 ```
 
-Set the graceful-shutdown convergence window used by `Destroy`. The default is ten seconds.
+Set how long `Destroy` waits for graceful shutdown before it times out. The default is ten seconds.
 
 #### <span className="msb-recv"></span><span className="msb-hn">WithKillTimeout()</span>
 
