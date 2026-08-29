@@ -1,9 +1,10 @@
 ---
 title: Sandbox
 description: Ruby SDK - Sandbox lifecycle API reference
+keywords: ["Ruby SDK", "Ruby sandbox", "microsandbox sandbox"]
 ---
 
-Create and control a microVM sandbox from Ruby. The SDK supports local and cloud backends; blocking native calls release Ruby's GVL so other Ruby threads can continue running. See [Lifecycle](/sandboxes/lifecycle) for the shared state model and [Error handling](/sdk/errors) for cross-SDK behavior.
+Create and control a microVM sandbox from Ruby. The SDK supports local and cloud backends; blocking native calls release Ruby's global VM lock (GVL) so other Ruby threads can continue running. See [Lifecycle](/sandboxes/lifecycle) for the shared state model and [Error handling](/sdk/errors) for cross-SDK behavior.
 
 ## Installation
 
