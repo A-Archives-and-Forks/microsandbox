@@ -177,7 +177,7 @@ Resume a stopped sandbox. Name one or more sandboxes, or select them by label.
 
 ```bash
 msb start devbox
-msb start --label app=engine          # start every sandbox labelled app=engine
+msb start --label app=engine          # Start every sandbox labeled app=engine
 ```
 
 | Flag | Description |
@@ -193,7 +193,7 @@ msb start --label app=engine          # start every sandbox labelled app=engine
 msb stop devbox                # Graceful shutdown (10s grace)
 msb stop --force devbox        # Force kill immediately
 msb stop -t 30 devbox          # 30s grace before force kill
-msb stop --label app=engine    # stop every sandbox labelled app=engine
+msb stop --label app=engine    # Stop every sandbox labeled app=engine
 ```
 
 Graceful shutdown gives the sandbox a chance to finish writing any
@@ -284,10 +284,10 @@ msb touch --label app=engine
 Change a running sandbox's configuration. Every change is planned and applied all-or-nothing. CPU and memory resize live within the `max_cpus` / `max_memory` ceilings; other changes that can't apply live need `--restart` or `--next-start`.
 
 ```bash
-msb modify api --cpus 4                     # live when 4 <= max_cpus
-msb modify api --env MODE=prod --restart    # restart to apply now
-msb modify api --max-memory 16G --next-start # raise the ceiling on next start
-msb modify api --cpus 8 --dry-run           # show the plan, apply nothing
+msb modify api --cpus 4                     # Live when 4 <= max_cpus
+msb modify api --env MODE=prod --restart    # Restart to apply now
+msb modify api --max-memory 16G --next-start # Raise the ceiling on next start
+msb modify api --cpus 8 --dry-run           # Show the plan, apply nothing
 ```
 
 `max_cpus` and `max_memory` are boot-time reservations chosen at create time. They default to the effective `cpus`/`memory`, which leaves no headroom; live growth beyond them is impossible without a restart. Reserving capacity costs almost nothing (parked vCPUs and lazily-backed memory), so set them above the initial values at create time if the sandbox may need to grow.
@@ -313,7 +313,7 @@ Env and workdir changes on a running sandbox apply to future execs only; running
 | `--restart` | Restart if needed so restart-required changes become active now |
 | `--format json` | Emit the plan/result as JSON |
 
-A live resize may not apply instantly; `--format json` reports a per-resource `resize_status`. See [Tuning](/sandboxes/tuning) for the change model, or use `msb modify --help` for the full flag list.
+A live resize may not apply instantly; `--format json` reports a per-resource `resize_status`. See [Live Modify](/sandboxes/tuning) for the change model, or use `msb modify --help` for the full flag list.
 
 ## msb exec
 
@@ -411,7 +411,7 @@ msb logs devbox --source all                # everything, chronologically merged
 **Source tags** (the `s` field in `--json` output):
 
 - `stdout` / `stderr`: captured from the session's pipes when running in **pipe mode** (streams stay separated end to end).
-- `output`: captured from the session in **pty mode**. pty allocation merges stdout and stderr at the kernel level inside the guest, so they arrive as a single stream, tagged `output` rather than mislabelled as `stdout`.
+- `output`: captured from the session in **pty mode**. pty allocation merges stdout and stderr at the kernel level inside the guest, so they arrive as a single stream, tagged `output` rather than mislabeled as `stdout`.
 - `system`: synthetic lifecycle markers (`--- sandbox started ---` / `--- sandbox stopped ---`) plus diagnostic lines from `runtime.log`/`kernel.log` when `--source system` is requested.
 
 <Tip>
@@ -426,7 +426,7 @@ List all stored sandboxes.
 msb ls                    # All sandboxes (running and stopped)
 msb ls --running          # Running sandboxes only
 msb ls --stopped          # Stopped sandboxes only
-msb ls --label app=engine # Only sandboxes labelled app=engine
+msb ls --label app=engine # Only sandboxes labeled app=engine
 msb ls --format json      # JSON output
 msb ls -q                 # Names only
 ```
@@ -526,7 +526,7 @@ Remove one or more sandboxes and their associated state.
 msb rm devbox
 msb rm --force devbox            # Stop and remove in one step
 msb rm worker-1 worker-2         # Remove multiple
-msb rm --force --label app=engine  # Remove every sandbox labelled app=engine
+msb rm --force --label app=engine  # Remove every sandbox labeled app=engine
 ```
 
 | Flag | Description |

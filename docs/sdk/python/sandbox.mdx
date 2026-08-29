@@ -1,6 +1,7 @@
 ---
 title: Sandbox
 description: Python SDK - Sandbox API reference
+keywords: ["Python SDK", "Python sandbox", "microsandbox sandbox"]
 ---
 
 Create and control a microVM sandbox: boot it from an image, run commands, stream logs and metrics, then shut it down. See [Overview](/sandboxes/overview) for configuration examples and [Lifecycle](/sandboxes/lifecycle) for state management.
@@ -363,7 +364,7 @@ Delete a stopped sandbox by name. See [Remove](/sandboxes/lifecycle#remove) for 
   </div>
 </div>
 
-<p className="msb-member-group">Instance methods</p>
+<p className="msb-member-group" id="instance-methods">Instance methods</p>
 
 Command execution (`exec`, `exec_stream`, `shell`, `shell_stream`) is documented on the [Execution](/sdk/python/execution) page; SSH (`ssh`) on the [SSH](/sdk/python/ssh) page. The lifecycle, attach, metrics, and logs methods follow.
 
@@ -617,7 +618,7 @@ Plan or apply a configuration change. The returned plan uses [`ModificationDispo
 
 `cpus` and `memory` resize live within the `max_cpus` / `max_memory` ceilings; raising a ceiling requires a restart. `root_disk_size` changes are offline: managed and flat OCI root disks grow only, tmpfs root disks can change in either direction on the next boot, and user-supplied disk images are rejected. Env and workdir changes affect future execs only. On a stopped sandbox, changes are saved for the next boot.
 
-Secret specs are keyed by stable secret name. Each `SecretModifySpec` selects at most one source—`env`, `value`, or `store`—and may also set `placeholder` and `allowed_hosts`; omitting a source updates only the other supplied fields. Plans expose only safe references and metadata; raw secret values never appear in a plan. Removal is explicit through `secrets_rm`.
+Secret specs are keyed by stable secret name. Each `SecretModifySpec` selects at most one source (`env`, `value`, or `store`) and may also set `placeholder` and `allowed_hosts`; omitting a source updates only the other supplied fields. Plans expose only safe references and metadata; raw secret values never appear in a plan. Removal is explicit through `secrets_rm`.
 
 The returned [`SandboxModificationPlan`](#sandboxmodificationplan) is a typed dictionary:
 
@@ -1823,7 +1824,7 @@ The keyword arguments accepted by [`create()`](#sandbox-create) and [`create_wit
 | ports | `Mapping[int, int] \| Sequence[`[`PortBinding`](/sdk/python/networking#portbinding)`]` | `{}` | Port mappings. Mapping form is TCP and binds to `127.0.0.1`; use `PortBinding` for explicit bind addresses or UDP |
 | network | [`Network`](/sdk/python/networking#network) | public profile | Network policy and configuration |
 | secrets | `Sequence[`[`SecretEntry`](/sdk/python/secrets#secretentry)`]` | `[]` | Secret injection |
-| on_secret_violation | [`ViolationAction`](/sdk/python/secrets#violationaction)` \| `[`ViolationPolicy`](/sdk/python/secrets#violationpolicy) | `BLOCK_AND_LOG` | Sandbox-wide default action when a secret placeholder would leak to a non-eligible destination. Shorthand for `Network.on_secret_violation`; if both are provided, this top-level value takes precedence. See [Violation policy](/sdk/python/secrets#violation-policy) |
+| on_secret_violation | [`ViolationAction`](/sdk/python/secrets#violationaction)` \| `[`ViolationPolicy`](/sdk/python/secrets#violationpolicy) | `BLOCK_AND_LOG` | Sandbox-wide default action when a secret placeholder would leak to a non-eligible destination. Shorthand for `Network.on_secret_violation`; if both are provided, this top-level value takes precedence. See [Violation policy](/sdk/python/secrets#violationpolicy) |
 | detached | `bool` | `False` | If `True`, spawn the sandbox in detached mode; call [`detach()`](#sb-detach) before dropping the returned handle when it should keep running |
 
 ### InitConfig

@@ -33,6 +33,8 @@ nav[aria-label="Pages"] img[src*="/images/recipes/agents/"] {
   display: none;
 }
 
+nav[aria-label="Pages"] a > div:has(> img[src*="/claude-code.svg"]) { --msb-agent-icon: url("/images/recipes/agents/claude-code.svg"); }
+nav[aria-label="Pages"] a > div:has(> img[src*="/codex.svg"]) { --msb-agent-icon: url("/images/recipes/agents/codex.svg"); }
 nav[aria-label="Pages"] a > div:has(> img[src*="/opencode.svg"]) { --msb-agent-icon: url("/images/recipes/agents/opencode.svg"); }
 nav[aria-label="Pages"] a > div:has(> img[src*="/openclaw.svg"]) { --msb-agent-icon: url("/images/recipes/agents/openclaw.svg"); }
 nav[aria-label="Pages"] a > div:has(> img[src*="/goose.svg"]) { --msb-agent-icon: url("/images/recipes/agents/goose.svg"); }
@@ -97,8 +99,8 @@ nav[aria-label="Pages"] a > div:has(> img[src*="/pi.svg"]) { --msb-agent-icon: u
 }
 
 /* Compact platform preflight: one grouped strip keeps host requirements
- * visible without giving four short facts the visual weight of full cards or
- * a page-width comparison table. */
+ * visible without giving short facts the visual weight of full cards or a
+ * page-width comparison table. */
 .msb-platform-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -108,6 +110,10 @@ nav[aria-label="Pages"] a > div:has(> img[src*="/pi.svg"]) { --msb-agent-icon: u
   border: 1px solid rgba(109, 75, 196, 0.16);
   border-radius: 0.75rem;
   background: rgba(109, 75, 196, 0.16);
+}
+
+.msb-platform-strip-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .msb-platform-item {

@@ -46,6 +46,17 @@ stateDiagram-v2
 Creating a sandbox boots the microVM, mounts the filesystem, initializes the guest agent, and waits until it's ready to accept commands. Names must be non-empty and no longer than 128 UTF-8 bytes.
 
 <CodeGroup>
+```typescript TypeScript
+// Local attached handle: sandbox stops when your process exits
+await using sb = await Sandbox.builder("worker").image("python").create();
+
+// Detached: sandbox survives after your process exits
+const detached = await Sandbox.builder("worker")
+  .image("python")
+  .detached(true)
+  .create();
+```
+
 ```rust Rust
 // Local attached handle: sandbox stops when your process exits
 let sb = Sandbox::builder("worker").image("python").create().await?;
@@ -56,17 +67,6 @@ let sb = Sandbox::builder("worker")
     .detached(true)
     .create()
     .await?;
-```
-
-```typescript TypeScript
-// Local attached handle: sandbox stops when your process exits
-await using sb = await Sandbox.builder("worker").image("python").create();
-
-// Detached: sandbox survives after your process exits
-const detached = await Sandbox.builder("worker")
-  .image("python")
-  .detached(true)
-  .create();
 ```
 
 ```python Python
@@ -113,19 +113,19 @@ msb run -d python --name worker
 Use `connect_or_create` when several callers may converge on the same reusable name. It connects if the current persisted sandbox is already running, starts it if it is stopped or crashed, and creates it only when the name is missing. If another caller wins a concurrent create or start, the operation observes the winner and converges on it.
 
 <CodeGroup>
+```typescript TypeScript
+const sb = await Sandbox.builder("worker")
+  .image("python")
+  .memory(MiB(1024))
+  .connectOrCreate();
+```
+
 ```rust Rust
 let sb = Sandbox::builder("worker")
     .image("python")
     .memory(1024)
     .connect_or_create()
     .await?;
-```
-
-```typescript TypeScript
-const sb = await Sandbox.builder("worker")
-  .image("python")
-  .memory(MiB(1024))
-  .connectOrCreate();
 ```
 
 ```python Python
@@ -157,14 +157,14 @@ Builder options apply only when a sandbox is created. An existing sandbox always
 If you already hold a metadata handle, use `connect_or_start` instead. It connects without taking lifecycle ownership when the exact sandbox is running, waits through `Starting`, or starts the exact persisted sandbox when it is created, stopped, or crashed.
 
 <CodeGroup>
-```rust Rust
-let handle = Sandbox::get("worker").await?;
-let sb = handle.connect_or_start().await?;
-```
-
 ```typescript TypeScript
 const handle = await Sandbox.get("worker");
 const sb = await handle.connectOrStart();
+```
+
+```rust Rust
+let handle = Sandbox::get("worker").await?;
+let sb = handle.connect_or_start().await?;
 ```
 
 ```python Python
@@ -255,17 +255,17 @@ Every checked cell below is exercised by the in-tree lifecycle-convergence examp
 Stopping gracefully terminates guest processes and shuts down the VM. The sandbox moves to `Stopped` and can be restarted later with all its configuration preserved.
 
 <CodeGroup>
-```rust Rust
-sb.stop().await?;
-
-let sb = Sandbox::start("worker").await?;
-```
-
 ```typescript TypeScript
 await sb.stop()
 
 // Later, resume where you left off
 const sb = await Sandbox.start("worker")
+```
+
+```rust Rust
+sb.stop().await?;
+
+let sb = Sandbox::start("worker").await?;
 ```
 
 ```python Python
@@ -312,16 +312,16 @@ On microsandbox cloud, restart and destroy can request graceful stop, but timeou
 Use `msb modify`, or the SDK `modify()` methods, to change an existing sandbox without recreating it. Some changes apply live, some affect future execs only, and some need a restart or the next start.
 
 <CodeGroup>
+```typescript TypeScript
+const plan = await sandbox.modify({ cpus: 4, memory: 4096 });
+```
+
 ```rust Rust
 let plan = sb.modify()
     .cpus(4)
     .memory(4096)
     .apply()
     .await?;
-```
-
-```typescript TypeScript
-const plan = await sandbox.modify({ cpus: 4, memory: 4096 });
 ```
 
 ```python Python
@@ -337,7 +337,7 @@ msb modify api --cpus 4 --memory 4G
 ```
 </CodeGroup>
 
-See [Tuning](/sandboxes/tuning) for the change model, CPU and memory resize, labels, environment variables, secrets, and storage sizing.
+See [Live Modify](/sandboxes/tuning) for the change model, CPU and memory resize, labels, environment variables, secrets, and storage sizing.
 
 ## Ping and touch
 
@@ -346,6 +346,13 @@ See [Tuning](/sandboxes/tuning) for the change model, CPU and memory resize, lab
 Use `ping` to check that a running sandbox's guest agent is reachable, and `touch` to intentionally refresh its idle timer. Ping is a health check only: it does not count as sandbox activity and will not keep an idle sandbox alive by itself. Touch is the explicit keepalive.
 
 <CodeGroup>
+```typescript TypeScript
+const ping = await sb.ping();
+console.log(`agent reachable in ${ping.latencyMs.toFixed(1)} ms`);
+
+await sb.touch();
+```
+
 ```rust Rust
 let ping = sb.ping().await?;
 println!("agent reachable in {:?}", ping.latency);
@@ -367,15 +374,15 @@ msb ping worker --touch
 
 <Tooltip tip="Not yet available on microsandbox cloud; use a graceful stop instead."><span className="msb-badge-local">Local-only <Icon icon="circle-info" size={11} /></span></Tooltip>
 
-If a sandbox is unresponsive (e.g., stuck in a tight loop or a panic), force-kill it. The sandbox is terminated immediately with no graceful shutdown.
+If a sandbox is unresponsive (e.g., stuck in a tight loop or a panic), force-kill it. microsandbox terminates the sandbox immediately with no graceful shutdown.
 
 <CodeGroup>
-```rust Rust
-sb.kill().await?;
-```
-
 ```typescript TypeScript
 await sb.kill()
+```
+
+```rust Rust
+sb.kill().await?;
 ```
 
 ```python Python
@@ -397,12 +404,12 @@ msb stop --force worker
 Keeps a sandbox running after the parent process exits. It becomes a background process that you can reconnect to later with `Sandbox::get("worker")`.
 
 <CodeGroup>
-```rust Rust
-sb.detach().await;
-```
-
 ```typescript TypeScript
 await sb.detach()
+```
+
+```rust Rust
+sb.detach().await;
 ```
 
 ```python Python
@@ -422,12 +429,12 @@ err := sb.Detach(ctx)
 Trigger a graceful shutdown that lets existing commands finish but rejects new ones. The sandbox moves to `Draining` and transitions to `Stopped` when all in-flight commands complete. This is useful for zero-downtime rotation of worker sandboxes.
 
 <CodeGroup>
-```rust Rust
-sb.request_drain().await?;
-```
-
 ```typescript TypeScript
 await sb.requestDrain()
+```
+
+```rust Rust
+sb.request_drain().await?;
 ```
 
 ```python Python
@@ -445,12 +452,12 @@ err := sb.RequestDrain(ctx)
 Block until the sandbox is observed in a terminal non-running state, without triggering a stop or kill request.
 
 <CodeGroup>
-```rust Rust
-let result = sb.wait_until_stopped().await?;
-```
-
 ```typescript TypeScript
 const result = await sb.waitUntilStopped()
+```
+
+```rust Rust
+let result = sb.wait_until_stopped().await?;
 ```
 
 ```python Python
@@ -474,12 +481,12 @@ Use `wait_for_status` / `waitForStatus` / `WaitForStatus` when you need any exac
 `destroy` combines stop and remove for the exact sandbox identity. It requests a graceful stop by default, escalates after the configured timeout, and refuses to act on a replacement that reused the name.
 
 <CodeGroup>
-```rust Rust
-sb.destroy().await?;
-```
-
 ```typescript TypeScript
 await sb.destroy();
+```
+
+```rust Rust
+sb.destroy().await?;
 ```
 
 ```python Python
@@ -500,12 +507,12 @@ sb.destroy
 Delete a stopped sandbox. Every local SDK entry point and `msb rm` uses the same deletion scope.
 
 <CodeGroup>
-```rust Rust
-Sandbox::remove("worker").await?;
-```
-
 ```typescript TypeScript
 await Sandbox.remove("worker")
+```
+
+```rust Rust
+Sandbox::remove("worker").await?;
 ```
 
 ```python Python
@@ -541,12 +548,6 @@ Removing a sandbox does not undo writes made to a named volume, bind mount, or u
 ## List and inspect
 
 <CodeGroup>
-```rust Rust
-for handle in Sandbox::list().await?.sandboxes {
-    println!("{}: {:?}", handle.name(), handle.status_snapshot());
-}
-```
-
 ```typescript TypeScript
 const page = await Sandbox.list();
 for (const handle of page.sandboxes) {
@@ -555,6 +556,12 @@ for (const handle of page.sandboxes) {
 
 const handle = await Sandbox.get("worker");
 console.log(handle.status); // "running" | "stopped" | ...
+```
+
+```rust Rust
+for handle in Sandbox::list().await?.sandboxes {
+    println!("{}: {:?}", handle.name(), handle.status_snapshot());
+}
 ```
 
 ```python Python
@@ -623,6 +630,14 @@ Use [`msb logs`](/cli/sandbox-commands#msb-logs) or the SDK `logs()` method to r
 For production workloads, configure how the sandbox process handles shutdown, idle detection, and maximum lifetime.
 
 <CodeGroup>
+```typescript TypeScript
+await using sb = await Sandbox.builder("worker")
+    .image("python")
+    .maxDuration(3600)   // maximum sandbox lifetime in seconds
+    .idleTimeout(300)    // auto-drain after 5 minutes of inactivity
+    .create();
+```
+
 ```rust Rust
 let sb = Sandbox::builder("worker")
     .image("python")
@@ -630,14 +645,6 @@ let sb = Sandbox::builder("worker")
     .idle_timeout(300)
     .create()
     .await?;
-```
-
-```typescript TypeScript
-await using sb = await Sandbox.builder("worker")
-    .image("python")
-    .maxDuration(3600)   // maximum sandbox lifetime in seconds
-    .idleTimeout(300)    // auto-drain after 5 minutes of inactivity
-    .create();
 ```
 
 ```python Python
