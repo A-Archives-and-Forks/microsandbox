@@ -20,7 +20,7 @@ await sandbox.id -> str
 handle.id -> str
 ```
 
-`connect_or_create` converges on the current persisted sandbox by name and uses creation arguments only when it creates. Receiver lifecycle operations are bound to the stable opaque `id`; a stale receiver raises `SandboxReplacedError` instead of acting on a replacement that reused the name. `Sandbox` also exposes `wait_for_status`, `restart`, and `destroy`. See [Lifecycle convergence and identity safety](/sandboxes/lifecycle#converge-on-a-named-sandbox) for state behavior and examples.
+`connect_or_create` converges on the current persisted sandbox by name and uses creation arguments only when it creates. Receiver lifecycle operations are bound to the stable opaque `id`; a stale receiver raises `SandboxReplacedError` instead of acting on a replacement that reused the name. `Sandbox` also exposes `wait_for_status`, `restart`, and `destroy`. See [Reuse or create a named sandbox](/sandboxes/lifecycle#reuse-or-create-a-named-sandbox) for state behavior and examples.
 
 ## Sandbox
 
@@ -353,7 +353,7 @@ await Sandbox.remove("api")
 
 </Accordion>
 
-Delete a stopped sandbox by name. See [Remove](/sandboxes/lifecycle#remove) for the exact local deletion scope and the external resources that are preserved. Fails if the sandbox is still running; stop it first.
+Delete a stopped sandbox by name. See [Destroy or remove](/sandboxes/lifecycle#destroy-or-remove) for the exact local deletion scope and the external resources that are preserved. Fails if the sandbox is still running; stop it first.
 
 <p className="msb-label">Parameters</p>
 
