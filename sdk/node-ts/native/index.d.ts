@@ -1929,7 +1929,10 @@ export declare function imageRemove(reference: string, force?: boolean | undefin
  */
 export declare function imageSave(references: Array<string>, outputPath: string, format?: string | undefined | null): Promise<void>
 
-/** Download and install msb + libkrunfw to ~/.microsandbox/. */
+/**
+ * Download and install msb + libkrunfw under non-empty $MSB_HOME, or
+ * ~/.microsandbox/ when the override is unset or empty.
+ */
 export declare function install(): Promise<void>
 
 /** Check if msb and libkrunfw are installed and available. */
