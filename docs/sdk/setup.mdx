@@ -59,11 +59,11 @@ Microsandbox.install unless Microsandbox.installed?
 | Rust | `setup::install() -> MicrosandboxResult<()>` | `setup::is_installed() -> bool` | Downloads the SDK's pinned runtime and verifies it. |
 | Python | `install() -> Awaitable[None]` | `is_installed() -> bool` | Installs and verifies the runtime; release wheels normally bundle matching files. |
 | Go | `EnsureInstalled(ctx, ...SetupOption) error` | `IsInstalled() bool` | Installs `msb` and `libkrunfw`; the Go FFI library is embedded separately. |
-| Ruby | `install -> nil` | `installed? -> bool` | Installs and verifies the runtime used by the native extension. |
+| Ruby | `Microsandbox.install` | `Microsandbox.installed?` | Installs and verifies the runtime used by the native extension. |
 
 ## Customize installation
 
-TypeScript and Rust expose builders for custom install roots, versions, verification, and forced downloads. Go exposes `WithSkipDownload()` for pre-provisioned or air-gapped environments. Python's setup helper uses the default installation behavior.
+TypeScript and Rust expose builders for custom install roots, versions, verification, and forced downloads. Go exposes `WithSkipDownload()` for pre-provisioned or air-gapped environments. Python and Ruby setup helpers use the default installation behavior.
 
 <CodeGroup>
 ```typescript TypeScript

@@ -107,6 +107,15 @@ if err != nil {
 }
 fmt.Println(out.Stdout())
 ```
+
+```ruby Ruby
+require "microsandbox"
+
+Microsandbox::Sandbox.with("hello", image: "python") do |sb|
+  output = sb.exec("python", ["-c", "print('Hello from a microVM!')"])
+  puts output.stdout
+end
+```
 </CodeGroup>
 
 ## Next steps
