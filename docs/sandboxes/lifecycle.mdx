@@ -152,7 +152,7 @@ sb = Microsandbox::Sandbox.connect_or_create(
 </CodeGroup>
 
 <Warning>
-Creation options are used only when a new sandbox is created. If `worker` already exists, its saved image, resources, environment, mounts, and other configuration are kept. To apply new configuration, replace the existing sandbox locally. On microsandbox cloud, where replacement is unavailable, remove the existing sandbox and then create it again.
+Creation options are used only when a new sandbox is created. If `worker` already exists, its saved image, resources, environment, mounts, and other configuration are kept. To apply new configuration, use the [local replacement workflow](/sandboxes/overview#naming-conflicts). On microsandbox cloud, where replacement is unavailable, remove the existing sandbox and then create it again.
 </Warning>
 
 If you already have a `SandboxHandle`, use `connect_or_start` to connect to that exact sandbox or start it when needed.
