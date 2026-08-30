@@ -6,7 +6,7 @@ keywords: ["TypeScript SDK", "TypeScript sandbox", "microsandbox sandbox"]
 
 Create and control a microVM sandbox: boot it from an image, run commands, stream logs and metrics, then shut it down. See [Overview](/sandboxes/overview) for configuration examples and [Lifecycle](/sandboxes/lifecycle) for state management.
 
-## Lifecycle convergence
+## Reuse and restart sandboxes
 
 ```typescript
 Sandbox.builder(name).connectOrCreate(): Promise<Sandbox>
@@ -18,7 +18,9 @@ sandbox.id: string
 handle.id: string
 ```
 
-`connectOrCreate` converges on the current persisted sandbox by name and uses builder configuration only when it creates. Receiver lifecycle operations are bound to the stable opaque `id`; a stale receiver throws `SandboxReplacedError` instead of acting on a replacement that reused the name. `Sandbox` also exposes `waitForStatus`, `restart`, and `destroy`. See [Lifecycle convergence and identity safety](/sandboxes/lifecycle#converge-on-a-named-sandbox) for state behavior and examples.
+Use `connectOrCreate` when a named sandbox might already exist. It connects to a running sandbox, starts a stopped or crashed sandbox, and creates one only when the name is unused. Builder options apply only to a new sandbox.
+
+Lifecycle methods on a `Sandbox` or `SandboxHandle` stay attached to its opaque `id`. If the name is removed and reused, an old receiver throws `SandboxReplacedError` instead of acting on the replacement. See [Reuse or create a named sandbox](/sandboxes/lifecycle#reuse-or-create-a-named-sandbox) for examples.
 
 ## Functions
 
@@ -189,7 +191,7 @@ await Sandbox.remove("api");
 
 </Accordion>
 
-Delete a stopped sandbox by name. See [Remove](/sandboxes/lifecycle#remove) for the exact local deletion scope and the external resources that are preserved. Fails if the sandbox is still running. Stop it first.
+Delete a stopped sandbox by name. See [Destroy or remove](/sandboxes/lifecycle#destroy-or-remove) for the exact local deletion scope and the external resources that are preserved. Fails if the sandbox is still running. Stop it first.
 
 <p className="msb-label">Parameters</p>
 
@@ -780,7 +782,7 @@ Wait without a built-in timeout until this exact persisted sandbox reaches `stat
 restart(options?: { force?: boolean; timeoutMs?: number; detached?: boolean }): Promise<Sandbox>
 ```
 
-Restart this exact sandbox. Defaults to graceful shutdown, a 10_000 ms timeout, and attached local start. A stopped, crashed, or created sandbox starts directly; `Starting` is observed until it settles. Set `force` to kill, `timeoutMs` to change shutdown convergence, or `detached` for a local background start.
+Restart this exact sandbox. Defaults to graceful shutdown, a 10_000 ms timeout, and attached local start. A stopped, crashed, or created sandbox starts directly; `Starting` is observed until it settles. Set `force` to kill, `timeoutMs` to change how long shutdown can take, or `detached` for a local background start.
 
 #### <span className="msb-recv">sandbox.</span><span className="msb-hn">destroy()</span>
 
@@ -956,7 +958,7 @@ Build and boot the sandbox. By default, a local handle is attached and stops whe
 connectOrCreate(): Promise<Sandbox>
 ```
 
-Converge on the current persisted sandbox by name. The method connects when it is running, waits through `starting`, starts it when it is `created`, `stopped`, or `crashed`, and creates it only when the name is absent. Builder settings apply only when creation is necessary; existing persisted configuration always wins. Concurrent callers converge on the winning identity. Calling [`replace()`](#sandboxbuilder-replace) or [`replaceWithTimeout()`](#sandboxbuilder-replacewithtimeout) on this builder is invalid.
+Reuse or create the sandbox with this name. The method connects when it is running, waits while it is starting, starts it when it is created, stopped, or crashed, and creates it only when the name is unused. Builder settings apply only to a new sandbox. Concurrent callers reuse the same sandbox. Calling [`replace()`](#sandboxbuilder-replace) or [`replaceWithTimeout()`](#sandboxbuilder-replacewithtimeout) on this builder is invalid.
 
 <p className="msb-label">Returns</p>
 
