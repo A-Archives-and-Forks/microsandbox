@@ -57,16 +57,16 @@ An attached local SDK handle normally stops its sandbox when the client process 
 Stopping gracefully terminates guest processes and shuts down the VM. The sandbox moves to `Stopped`, but its configuration and filesystem remain available for the next start.
 
 <CodeGroup>
-```rust Rust
-sb.stop().await?;
-
-let sb = Sandbox::start("worker").await?;
-```
-
 ```typescript TypeScript
 await sb.stop();
 
 const sb = await Sandbox.start("worker");
+```
+
+```rust Rust
+sb.stop().await?;
+
+let sb = Sandbox::start("worker").await?;
 ```
 
 ```python Python
@@ -233,12 +233,6 @@ You can also detach an existing SDK receiver with `detach()` (`Detach` in Go).
 List sandboxes to discover what exists, or get one by name when you already know which sandbox you need.
 
 <CodeGroup>
-```rust Rust
-for handle in Sandbox::list().await?.sandboxes {
-    println!("{}: {:?}", handle.name(), handle.status_snapshot());
-}
-```
-
 ```typescript TypeScript
 const page = await Sandbox.list();
 for (const handle of page.sandboxes) {
@@ -247,6 +241,12 @@ for (const handle of page.sandboxes) {
 
 const handle = await Sandbox.get("worker");
 console.log(handle.status);
+```
+
+```rust Rust
+for handle in Sandbox::list().await?.sandboxes {
+    println!("{}: {:?}", handle.name(), handle.status_snapshot());
+}
 ```
 
 ```python Python
@@ -278,12 +278,12 @@ msb ps worker
 Use `wait_until_stopped` when another part of your application is responsible for stopping the sandbox and you only need to wait for it to finish.
 
 <CodeGroup>
-```rust Rust
-let result = sb.wait_until_stopped().await?;
-```
-
 ```typescript TypeScript
 const result = await sb.waitUntilStopped();
+```
+
+```rust Rust
+let result = sb.wait_until_stopped().await?;
 ```
 
 ```python Python
