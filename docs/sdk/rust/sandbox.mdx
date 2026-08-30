@@ -8,7 +8,7 @@ Create and control a microVM sandbox: boot it from an image, run commands, strea
 
 For local runtime installation and verification, see [Runtime setup](/sdk/setup#install-and-verify).
 
-## Lifecycle convergence
+## Reuse and restart sandboxes
 
 ```rust
 SandboxBuilder::connect_or_create(self) -> MicrosandboxResult<Sandbox>
@@ -20,7 +20,9 @@ Sandbox::id(&self) -> SandboxId
 SandboxHandle::id(&self) -> SandboxId
 ```
 
-`connect_or_create` converges on the current persisted sandbox by name and uses builder configuration only when it creates. On the built-in local and cloud backends, receiver lifecycle operations are bound to the opaque `SandboxId`; a stale receiver returns `MicrosandboxError::SandboxReplaced` instead of acting on a replacement that reused the name. Custom backends should override the `*_identified` methods on `SandboxBackend` to provide the same guarantee. `Sandbox` also exposes `wait_for_status`, `restart`, and `destroy`; use `restart_with(RestartOptions)` and `destroy_with(DestroyOptions)` for force, timeout, and detached-start controls. See [Lifecycle convergence and identity safety](/sandboxes/lifecycle#converge-on-a-named-sandbox) for state behavior and examples.
+Use `connect_or_create` when a named sandbox might already exist. It connects to a running sandbox, starts a stopped or crashed sandbox, and creates one only when the name is unused. Builder options apply only to a new sandbox.
+
+Lifecycle methods on a `Sandbox` or `SandboxHandle` stay attached to its opaque `SandboxId`. If the name is removed and reused, an old receiver returns `MicrosandboxError::SandboxReplaced` instead of acting on the replacement. Custom backends provide the same behavior by implementing the `*_identified` methods on `SandboxBackend`. See [Reuse or create a named sandbox](/sandboxes/lifecycle#reuse-or-create-a-named-sandbox) for examples.
 
 ## Sandbox
 
@@ -164,7 +166,7 @@ Sandbox::remove("api").await?;
 
 </Accordion>
 
-Delete a stopped sandbox by name. Locally, this removes the same state as [`sb.remove_persisted()`](#sb-remove_persisted); see [Remove](/sandboxes/lifecycle#remove) for the exact deletion scope. Unlike `remove_persisted()`, this associated function routes through the default backend and also supports cloud sandboxes. Fails if the sandbox is still running. Stop it first.
+Delete a stopped sandbox by name. Locally, this removes the same state as [`sb.remove_persisted()`](#sb-remove_persisted); see [Destroy or remove](/sandboxes/lifecycle#destroy-or-remove) for the exact deletion scope. Unlike `remove_persisted()`, this associated function routes through the default backend and also supports cloud sandboxes. Fails if the sandbox is still running. Stop it first.
 
 <p className="msb-label">Parameters</p>
 
@@ -665,7 +667,7 @@ sb.remove_persisted().await?;
 
 </Accordion>
 
-Delete this stopped sandbox's persisted state. This receiver-based form is useful when you still hold the `Sandbox` instance; it has exactly the same deletion scope as [`Sandbox::remove(name)`](#sandboxremove). It does **not** perform additional cleanup. See [Remove](/sandboxes/lifecycle#remove) for what is deleted and which external resources are preserved.
+Delete this stopped sandbox's persisted state. This receiver-based form is useful when you still hold the `Sandbox` instance; it has exactly the same deletion scope as [`Sandbox::remove(name)`](#sandboxremove). It does **not** perform additional cleanup. See [Destroy or remove](/sandboxes/lifecycle#destroy-or-remove) for what is deleted and which external resources are preserved.
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">request_stop()</span>
 
@@ -794,7 +796,7 @@ Gracefully stop and start this exact sandbox using the persisted configuration. 
 async fn restart_with(&self, options: RestartOptions) -> MicrosandboxResult<Sandbox>
 ```
 
-Restart with explicit lifecycle controls. `RestartOptions` defaults to graceful shutdown, a ten-second timeout, and attached local start. Set `force` to kill instead of draining, `timeout` to control shutdown convergence, and `detached` to start a local background sandbox.
+Restart with explicit lifecycle controls. `RestartOptions` defaults to graceful shutdown, a ten-second timeout, and attached local start. Set `force` to kill instead of draining, `timeout` to control how long shutdown can take, and `detached` to start a local background sandbox.
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">destroy()</span>
 
@@ -802,7 +804,7 @@ Restart with explicit lifecycle controls. `RestartOptions` defaults to graceful 
 async fn destroy(&self) -> MicrosandboxResult<()>
 ```
 
-Gracefully stop and remove this exact sandbox. Unlike [`remove_persisted()`](#remove-persisted), `destroy` accepts a running sandbox and converges it through shutdown before deleting persisted state.
+Gracefully stop and remove this exact sandbox. Unlike [`remove_persisted()`](#remove-persisted), `destroy` accepts a running sandbox, waits for it to shut down, and then deletes its persisted state.
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">destroy_with()</span>
 
@@ -810,7 +812,7 @@ Gracefully stop and remove this exact sandbox. Unlike [`remove_persisted()`](#re
 async fn destroy_with(&self, options: DestroyOptions) -> MicrosandboxResult<()>
 ```
 
-Destroy with explicit shutdown controls. `DestroyOptions` defaults to graceful shutdown with a ten-second timeout; set `force` to kill immediately or `timeout` to change the convergence window. Identity checks prevent this receiver from deleting a same-name replacement.
+Destroy with explicit shutdown controls. `DestroyOptions` defaults to graceful shutdown with a ten-second timeout; set `force` to kill immediately or `timeout` to change how long shutdown can take. Identity checks prevent this receiver from deleting a same-name replacement.
 
 ## SandboxBuilder
 
@@ -851,6 +853,61 @@ Materialize the [`SandboxConfig`](#sandboxconfig) without booting the sandbox. V
     <div className="msb-param-desc">Validated, ready-to-boot configuration.</div>
   </div>
 </div>
+
+#### <span className="msb-recv">sandbox.</span><span className="msb-hn">overlay()</span>
+
+```rust
+fn overlay(self, patch: SandboxConfigPatch) -> Self
+```
+
+Apply sparse per-sandbox configuration after built-in and global defaults. Builder methods called after `overlay` take precedence over the patch.
+
+<Accordion title="Example">
+
+```rust
+use microsandbox::{
+    EnvVar, Sandbox, SandboxConfigPatch, SandboxResourcesPatch,
+};
+
+let resources = SandboxResourcesPatch::new()
+    .max_memory_mib(1024)
+    .memory_mib(1024)
+    .max_cpus(2)
+    .cpus(2);
+
+let patch = SandboxConfigPatch::new()
+    .resources(resources)
+    .env(vec![EnvVar::new("MODE", "production")]);
+
+let sandbox = Sandbox::builder("agent")
+    .image("python:3.12")
+    .overlay(patch)
+    .memory(2048)
+    .create()
+    .await?;
+```
+
+</Accordion>
+
+Environment variables merge by variable name, while labels and scripts merge by map key. Secret entries merge by environment-variable name. Later values win when keys match. Use the generated `replace_*` methods to replace a complete collection; `clear_*` removes the field from the patch so the lower-precedence value remains unchanged.
+
+`SandboxConfigPatch` contains typed configuration values only. YAML loading, relative-path resolution, `${ENV}` expansion, registry credentials, and snapshot selection remain separate CLI or builder responsibilities.
+
+<Accordion title="Migrating from the earlier patch types">
+
+The generated patch model replaces the handwritten patch hierarchy from microsandbox 0.6.15 and earlier:
+
+| Earlier type | Current type |
+| --- | --- |
+| `ResourceConfigPatch` | `SandboxResourcesPatch` |
+| `RuntimeConfigPatch` | `SandboxRuntimeOptionsPatch` |
+| `NetworkConfigPatch` | `NetworkSpecPatch` |
+| `NetworkPolicyConfigPatch` | `SandboxPolicyPatch` |
+| `SecretConfigPatch` | `SecretsConfigPatch` |
+
+Filesystem, script, image, and init values now use `SandboxConfigPatch` and its nested patch types directly. `LocalConfig` remains available as a deprecated alias of `GlobalConfig`.
+
+</Accordion>
 
 #### <span className="msb-recv">sandbox.</span><span className="msb-hn">cpus()</span>
 
@@ -911,7 +968,7 @@ Boot the sandbox. Local handles use attached mode and stop the sandbox when the 
 async fn connect_or_create(self) -> MicrosandboxResult<Sandbox>
 ```
 
-Converge on the current persisted sandbox by name. The method connects when it is running, waits through `Starting`, starts it when it is `Created`, `Stopped`, or `Crashed`, and creates it only when the name is absent. Builder configuration is used only for creation; an existing sandbox keeps its persisted configuration. Concurrent creators and starters converge on the winning identity. Combining this method with [`replace()`](#replace) returns `InvalidConfig`.
+Reuse or create the sandbox with this name. The method connects when it is running, waits while it is starting, starts it when it is created, stopped, or crashed, and creates it only when the name is unused. Builder configuration applies only to a new sandbox. Concurrent callers reuse the same sandbox. Combining this method with [`replace()`](#replace) returns `InvalidConfig`.
 
 <p className="msb-label">Returns</p>
 
@@ -2295,7 +2352,7 @@ Same as `connect()` with an explicit timeout
 async fn connect_or_start(&self) -> MicrosandboxResult<Sandbox>
 ```
 
-Connect to this exact sandbox when it is running, wait through `Starting`, or start it in attached mode when it is `Created`, `Stopped`, or `Crashed`. `Draining` and `Paused` are rejected. Concurrent starts converge on the winner without following a replacement identity.
+Connect to this exact sandbox when it is running, wait through `Starting`, or start it in attached mode when it is `Created`, `Stopped`, or `Crashed`. `Draining` and `Paused` are rejected. If another caller starts it at the same time, both callers connect to the same sandbox without following a same-name replacement.
 
 #### <span className="msb-recv">h.</span><span className="msb-hn">connect_or_start_detached()</span>
 
@@ -2303,7 +2360,7 @@ Connect to this exact sandbox when it is running, wait through `Starting`, or st
 async fn connect_or_start_detached(&self) -> MicrosandboxResult<Sandbox>
 ```
 
-Use the same state convergence as [`connect_or_start()`](#connect-or-start), but start a local stopped sandbox in detached/background mode. Connecting to an already-running sandbox never changes its ownership.
+Behaves like [`connect_or_start()`](#connect-or-start), but starts a local stopped sandbox in detached/background mode. Connecting to an already-running sandbox never changes its ownership.
 
 #### <span className="msb-recv">h.</span><span className="msb-hn">created_at()</span>
 
