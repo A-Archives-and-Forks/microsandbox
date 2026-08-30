@@ -958,7 +958,7 @@ Build and boot the sandbox. By default, a local handle is attached and stops whe
 connectOrCreate(): Promise<Sandbox>
 ```
 
-Reuse or create the sandbox with this name. The method connects when it is running, waits while it is starting, starts it when it is created, stopped, or crashed, and creates it only when the name is unused. Builder settings apply only to a new sandbox. Concurrent callers reuse the same sandbox. Calling [`replace()`](#replace) or [`replaceWithTimeout()`](#replacewithtimeout) on this builder is invalid.
+Reuse or create the sandbox with this name. The method connects when it is running, waits while it is starting, starts it when it is created, stopped, or crashed, and creates it only when the name is unused. Builder settings apply only to a new sandbox. Concurrent callers reuse the same sandbox. Calling [`replace()`](#sandboxbuilder-replace) or [`replaceWithTimeout()`](#sandboxbuilder-replacewithtimeout) on this builder is invalid.
 
 <p className="msb-label">Returns</p>
 
@@ -2533,7 +2533,7 @@ Wait without a built-in timeout until this exact sandbox reaches `status`, retur
 restart(options?: { force?: boolean; timeoutMs?: number; detached?: boolean }): Promise<Sandbox>
 ```
 
-Restart this exact sandbox with the same state and option semantics as [`sandbox.restart()`](#restart).
+Restart this exact sandbox with the same state and option semantics as [`sandbox.restart()`](#sandbox-restart).
 
 #### <span className="msb-recv">handle.</span><span className="msb-hn">destroy()</span>
 
@@ -2753,7 +2753,7 @@ Snapshot the accumulated registry configuration.
 
 ### LogLevel
 
-<p className="msb-backref">Used by <a href="#loglevel">logLevel()</a></p>
+<p className="msb-backref">Used by <a href="#sandboxbuilder-loglevel">logLevel()</a></p>
 
 Sandbox process log verbosity. String literal type.
 
@@ -2848,7 +2848,7 @@ Desired state for one secret. `env`, `value`, and `store` are mutually exclusive
 
 ### PullPolicy
 
-<p className="msb-backref">Used by <a href="#pullpolicy">pullPolicy()</a></p>
+<p className="msb-backref">Used by <a href="#sandboxbuilder-pullpolicy">pullPolicy()</a></p>
 
 Controls when the SDK fetches an OCI image from the registry. String literal type.
 
