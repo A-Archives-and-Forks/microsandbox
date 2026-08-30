@@ -2869,7 +2869,7 @@ The full configuration of a sandbox. Most callers build a sandbox via `CreateSan
 | LogLevel | [`LogLevel`](#loglevel) | Sandbox log verbosity override |
 | QuietLogs | `bool` | Suppress sandbox-level log output |
 | Scripts | `map[string]string` | Named scripts mounted at `/.msb/scripts/` |
-| PullPolicy | [`PullPolicy`](#pullpolicy) | Image pull behaviour |
+| PullPolicy | [`PullPolicy`](#pullpolicy) | Image pull behavior |
 | MaxDuration | `time.Duration` | Maximum sandbox lifetime |
 | IdleTimeout | `time.Duration` | Idle timeout |
 | RegistryAuth | [`*RegistryAuth`](#registryauth) | Private registry credentials |
@@ -3174,7 +3174,7 @@ A single rootfs patch. Construct via the [`Patch`](#patch) factory; the fields p
 
 | Field | Type | Description |
 |-------|------|-------------|
-| Kind | [`PatchKind`](#patchkind) | Patch flavour |
+| Kind | [`PatchKind`](#patchkind) | Patch flavor |
 | Path | `string` | Absolute guest path (text / append / mkdir / remove) |
 | Content | `string` | Text content (text / append) |
 | Mode | `*uint32` | File or directory mode, e.g. `0o644` |
