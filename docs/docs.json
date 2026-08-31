@@ -404,6 +404,7 @@
                 "group": "August 2026",
                 "expanded": true,
                 "pages": [
+                  "changelog/2026-08-28",
                   "changelog/2026-08-26",
                   "changelog/2026-08-21",
                   "changelog/2026-08-14",
