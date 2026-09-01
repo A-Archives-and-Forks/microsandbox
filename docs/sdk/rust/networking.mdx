@@ -1025,7 +1025,7 @@ Set the per-DNS-query timeout in milliseconds. Default: `5000`.
 fn rebind_protection(self, enabled: bool) -> Self
 ```
 
-When enabled, DNS responses that resolve to private IP addresses are blocked, preventing DNS rebinding attacks. Default: `true`.
+When enabled, the interceptor blocks DNS responses that resolve to private IP addresses, preventing DNS rebinding attacks. Default: `true`.
 
 ## TlsBuilder
 
