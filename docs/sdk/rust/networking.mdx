@@ -1218,7 +1218,7 @@ Configure the runtime-to-guest direction.
 
 ## RateLimiterBuilder
 
-Builder for one direction's rate limiter, supplied to [`NetworkRateLimiterBuilder::egress()`](#-egress) or [`ingress()`](#-ingress). A limiter caps bandwidth (bytes) and packet rate (frames) independently; leaving a bucket unset leaves that dimension unlimited. Buckets start full plus their one-time burst and refill continuously. Every setter returns `Self`.
+Builder for one direction's rate limiter, supplied to [`NetworkRateLimiterBuilder::egress()`](#egress) or [`ingress()`](#ingress). A limiter caps bandwidth (bytes) and packet rate (frames) independently; leaving a bucket unset leaves that dimension unlimited. Buckets start full plus their one-time burst and refill continuously. Every setter returns `Self`.
 
 Validation runs at `NetworkBuilder::build()`: a limiter with neither bucket, a zero bucket size or refill interval, a burst without its bucket, or a refill interval that does not fit in u64 milliseconds surfaces as [`BuildError`](#builderror).
 
@@ -1249,7 +1249,7 @@ Cap bandwidth at `size` bytes per `refill_time`. Size accepts a bare `u64` byte 
 fn bandwidth_burst(self, burst: impl Into<Bytes>) -> Self
 ```
 
-Grant a one-time startup burst of extra bytes on top of the bandwidth bucket. The burst is spent before the regular budget and never refills. Requires [`bandwidth()`](#-bandwidth).
+Grant a one-time startup burst of extra bytes on top of the bandwidth bucket. The burst is spent before the regular budget and never refills. Requires [`bandwidth()`](#bandwidth).
 
 #### <span className="msb-recv">.</span><span className="msb-hn">ops()</span>
 
@@ -1265,7 +1265,7 @@ Cap packet rate at `count` frames per `refill_time`.
 fn ops_burst(self, count: u64) -> Self
 ```
 
-Grant a one-time startup burst of extra frames on top of the ops bucket. Requires [`ops()`](#-ops).
+Grant a one-time startup burst of extra frames on top of the ops bucket. Requires [`ops()`](#ops).
 
 ---
 
