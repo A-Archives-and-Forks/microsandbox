@@ -768,11 +768,14 @@ async fn wait_until_stopped(&self) -> MicrosandboxResult<SandboxStopResult>
 
 Block until the sandbox is observed in a terminal non-running state. Owned local sandboxes can include process exit details; detached, name-addressed, and cloud-backed sandboxes report the observed backend state.
 
-**Returns**
+<p className="msb-label">Returns</p>
 
-| Type | Description |
-|------|-------------|
-| [`SandboxStopResult`](#sandboxstopresult) | Observed terminal sandbox state |
+<div className="msb-params">
+  <div className="msb-param">
+    <div className="msb-param-key"><a className="msb-type" href="#sandboxstopresult">SandboxStopResult</a></div>
+    <div className="msb-param-desc">Observed terminal sandbox state.</div>
+  </div>
+</div>
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">wait_for_status()</span>
 
