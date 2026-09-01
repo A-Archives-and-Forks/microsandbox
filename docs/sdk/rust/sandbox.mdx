@@ -693,7 +693,7 @@ sb.stop().await?;
 
 </Accordion>
 
-Gracefully shut down the sandbox. Lets the sandbox finish writing any pending data to disk before it exits, so files written inside the sandbox aren't lost across a later restart. Waits up to ten seconds for a clean exit; if the sandbox is still running after that, it is force-killed.
+Gracefully shut down the sandbox. Lets the sandbox finish writing any pending data to disk before it exits, so files written inside the sandbox aren't lost across a later restart. Waits up to ten seconds for a clean exit; if the sandbox is still running after that, microsandbox force-kills it.
 
 #### <span className="msb-recv">sb.</span><span className="msb-hn">stop_with_timeout()</span>
 
@@ -1278,7 +1278,7 @@ Override the sandbox process's log verbosity.
 fn max_duration(self, secs: u64) -> Self
 ```
 
-Set the maximum sandbox lifetime in seconds. When exceeded, the sandbox is drained and stopped. Enforced on the host side; the guest cannot override it.
+Set the maximum sandbox lifetime in seconds. When exceeded, the host drains and stops the sandbox. Enforced on the host side; the guest cannot override it.
 
 <p className="msb-label">Parameters</p>
 
