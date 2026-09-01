@@ -49,7 +49,7 @@ let policy = NetworkPolicy::builder()
 
 </Accordion>
 
-Start the fluent [`NetworkPolicyBuilder`](#networkpolicybuilder). The primary construction path: string inputs (`.ip`, `.cidr`, `.domain`, `.domain_suffix`) are stored raw and parsed at [`build()`](#policy-build), so the chain stays clean and the first parse or validation failure surfaces as [`BuildError`](#builderror).
+Start the fluent [`NetworkPolicyBuilder`](#networkpolicybuilder). The primary construction path. String inputs (`.ip`, `.cidr`, `.domain`, `.domain_suffix`) are stored raw and parsed at [`build()`](#policy-build), so the chain stays clean and the first parse or validation failure surfaces as [`BuildError`](#builderror).
 
 <p className="msb-label">Returns</p>
 
@@ -342,7 +342,7 @@ Open a multi-rule batch closure. Direction must be set inside via [`.egress()`](
 fn build(self) -> Result<NetworkPolicy, BuildError>
 ```
 
-Consume the builder and produce a [`NetworkPolicy`](#networkpolicy). Lazy-parses every `.ip()` / `.cidr()` / `.domain()` / `.domain_suffix()` input, validates the direction-set and ICMP-egress-only invariants, and emits a `tracing::warn!` for each shadowed rule pair (a rule fully covered by an earlier one in the same direction; only `Ip` / `Cidr` / `Group` destinations are checked). Builds still succeed when a shadow is detected. Returns the first [`BuildError`](#builderror) encountered.
+Consume the builder and produce a [`NetworkPolicy`](#networkpolicy). Lazy-parses every `.ip()` / `.cidr()` / `.domain()` / `.domain_suffix()` input and validates the direction-set and ICMP-egress-only invariants. It also emits a `tracing::warn!` for each shadowed rule pair (a rule fully covered by an earlier one in the same direction; only `Ip` / `Cidr` / `Group` destinations are checked). Builds still succeed when a shadow is detected. Returns the first [`BuildError`](#builderror) encountered.
 
 <p className="msb-label">Returns</p>
 
@@ -489,7 +489,7 @@ Allow the [`Private`](#destinationgroup) group (RFC1918 + ULA + CGN).
 fn allow_loopback(&mut self) -> &mut Self
 ```
 
-Allow the [`Loopback`](#destinationgroup) group (`127.0.0.0/8`, `::1`): the **guest's own** loopback, not the host. To reach a service on the host's localhost use [`allow_host()`](#rule-allow_host) instead. See the [loopback-vs-host trap](/networking/overview#reaching-the-host).
+Allow the [`Loopback`](#destinationgroup) group (`127.0.0.0/8`, `::1`): the **guest's own** loopback, not the host. To reach a service on the host's localhost use [`allow_host()`](#rule-allow_host) instead. See the [loopback-vs-host watch-out](/networking/overview#reaching-the-host).
 
 #### <span className="msb-recv">rule.</span><span className="msb-hn">allow_link_local()</span>
 
@@ -537,7 +537,7 @@ Deny the [`Public`](#destinationgroup) group. Per-group `deny_*` adders mirror t
 fn allow_local(&mut self) -> &mut Self
 ```
 
-Commit **three** allow rules atomically: [`Loopback`](#destinationgroup) + `LinkLocal` + `Host`. Each uses the closure's current state. `Metadata` is intentionally excluded; opt in via [`allow_meta()`](#rule-allow_meta) separately.
+Commit **three** allow rules atomically: [`Loopback`](#destinationgroup) + `LinkLocal` + `Host`. Each uses the closure's current state. `Metadata` is intentionally not included; opt in via [`allow_meta()`](#rule-allow_meta) separately.
 
 #### <span className="msb-recv">rule.</span><span className="msb-hn">deny_local()</span>
 
@@ -545,7 +545,7 @@ Commit **three** allow rules atomically: [`Loopback`](#destinationgroup) + `Link
 fn deny_local(&mut self) -> &mut Self
 ```
 
-Commit three deny rules atomically: `Loopback` + `LinkLocal` + `Host`. `Metadata` is intentionally excluded.
+Commit three deny rules atomically: `Loopback` + `LinkLocal` + `Host`. `Metadata` is intentionally not included.
 
 #### <span className="msb-recv">rule.</span><span className="msb-hn">allow_domains()</span>
 
@@ -843,7 +843,7 @@ Configure TLS interception. See [`TlsBuilder`](#tlsbuilder).
 fn trust_host_cas(self, enabled: bool) -> Self
 ```
 
-Whether to ship the host's trusted root CAs into the guest at boot. Default: `false`. Opt in when egress HTTPS inside the sandbox needs to work behind corporate MITM proxies (Cloudflare Warp Zero Trust, Zscaler, Netskope, etc.): those proxies install a gateway CA on the host that's unknown to the guest's stock Mozilla bundle.
+Whether to ship the host's trusted root CAs into the guest at boot. Default: `false`. Opt in when egress HTTPS inside the sandbox needs to work behind corporate MITM proxies (Cloudflare Warp Zero Trust, Zscaler, Netskope, etc.). Those proxies install a gateway CA on the host that's unknown to the guest's stock Mozilla bundle.
 
 #### <span className="msb-recv">network.</span><span className="msb-hn">max_connections()</span>
 
