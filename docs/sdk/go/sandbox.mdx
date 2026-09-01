@@ -1862,7 +1862,7 @@ Add volume mount configurations keyed by guest path. Build values via the [`Moun
 func WithStopTimeout(timeout time.Duration) StopOption
 ```
 
-Set how long [`Stop`](#sb-stop) waits for graceful shutdown before force-killing. Default: 10 seconds. This is a `StopOption`, not a `SandboxOption`. Pass it to [`Stop`](#sb-stop).
+Set how long [`Stop`](#sb-stop) waits for graceful shutdown before force-killing. The default is ten seconds. This is a `StopOption`, not a `SandboxOption`. Pass it to [`Stop`](#sb-stop).
 
 <p className="msb-label">Parameters</p>
 
@@ -1927,7 +1927,7 @@ Set how long `Destroy` waits for graceful shutdown before it times out. The defa
 func WithKillTimeout(timeout time.Duration) KillOption
 ```
 
-Set how long [`Kill`](#sb-kill) waits for stopped-state observation. Default: 5 seconds. This is a `KillOption`; pass it to [`Kill`](#sb-kill).
+Set how long [`Kill`](#sb-kill) waits for stopped-state observation. The default is five seconds. This is a `KillOption`; pass it to [`Kill`](#sb-kill).
 
 <p className="msb-label">Parameters</p>
 
