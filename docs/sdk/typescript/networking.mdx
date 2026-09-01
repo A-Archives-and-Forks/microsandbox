@@ -1810,7 +1810,7 @@ Configure the runtime-to-guest direction.
 
 ## RateLimiterBuilder
 
-Builder for one direction's rate limiter, supplied to [`NetworkRateLimiterBuilder.egress()`](#-egress) or [`ingress()`](#-ingress). A limiter caps bandwidth (bytes) and packet rate (frames) independently; leaving a bucket unset leaves that dimension unlimited. Buckets start full plus their one-time burst and refill continuously. Every setter returns `this`.
+Builder for one direction's rate limiter, supplied to [`NetworkRateLimiterBuilder.egress()`](#egress) or [`ingress()`](#ingress). A limiter caps bandwidth (bytes) and packet rate (frames) independently; leaving a bucket unset leaves that dimension unlimited. Buckets start full plus their one-time burst and refill continuously. Every setter returns `this`.
 
 Validation runs at `NetworkBuilder.build()`: a limiter with neither bucket, a zero bucket size or refill interval, or a burst without its bucket throws. Bucket values must be non-negative integers.
 
