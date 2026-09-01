@@ -997,7 +997,7 @@ Release the Rust-side handle. Safe to call multiple times; the second call retur
 func (s *Sandbox) OwnsLifecycle() (bool, error)
 ```
 
-Report whether this handle owns the VM process. Local attached handles return `true`; local detached handles and all cloud handles return `false`, because the cloud worker owns the sandbox process. The error return covers stale handles and FFI failures; use [`OwnsLifecycleOrFalse`](#sb-ownslifecycleorfalse) when you don't care.
+Report whether this handle owns the VM process. Local attached handles return `true`; local detached handles and all cloud handles return `false`, because the cloud worker owns the sandbox process. The error return covers stale handles and FFI failures; use [`OwnsLifecycleOrFalse`](#sb-ownslifecycleorfalse) for callers that don't need the error.
 
 <p className="msb-label">Returns</p>
 
