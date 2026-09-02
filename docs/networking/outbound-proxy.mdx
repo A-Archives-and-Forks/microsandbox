@@ -25,6 +25,15 @@ Everything upstream of that dial is unaffected:
 ## Enabling it
 
 <CodeGroup>
+```typescript TypeScript
+import { Sandbox } from "microsandbox";
+
+await using sb = await Sandbox.builder("inspected")
+    .image("python")
+    .proxy((p) => p.socks5("127.0.0.1:8080"))
+    .create();
+```
+
 ```rust Rust
 use microsandbox::Sandbox;
 
@@ -33,15 +42,6 @@ let sb = Sandbox::builder("inspected")
     .proxy(|p| p.socks5("127.0.0.1:8080"))
     .create()
     .await?;
-```
-
-```typescript TypeScript
-import { Sandbox } from "microsandbox";
-
-await using sb = await Sandbox.builder("inspected")
-    .image("python")
-    .proxy((p) => p.socks5("127.0.0.1:8080"))
-    .create();
 ```
 
 ```python Python
@@ -73,12 +73,12 @@ SDKs use typed protocol-specific configuration. The CLI accepts `socks4://IP:por
 SOCKS4 can include an optional user ID in its handshake. Configure it through the SDK API:
 
 <CodeGroup>
-```rust Rust
-.proxy(|p| p.socks4("127.0.0.1:1080").user_id("sandbox"))
-```
-
 ```typescript TypeScript
 .proxy((p) => p.socks4("127.0.0.1:1080").userId("sandbox"))
+```
+
+```rust Rust
+.proxy(|p| p.socks4("127.0.0.1:1080").user_id("sandbox"))
 ```
 
 ```python Python
