@@ -414,8 +414,8 @@ Practical ways to put microsandbox to work:
 
 #### <img height="14" src="https://octicons-col.vercel.app/list-unordered/A770EF">&nbsp;&nbsp;Guides & showcases
 
-> • <img height="14" src="https://octicons-col.vercel.app/list-unordered/A770EF"> **[Awesome Microsandbox](https://github.com/ya-luotao/awesome-microsandbox) by luotao**: Curated list of SDKs, integrations, tools, and resources.<br />
-> • <img height="14" src="https://octicons-col.vercel.app/device-desktop/A770EF"> **[msb-omarchy](https://github.com/ya-luotao/msb-omarchy) by luotao**: Omarchy desktop with graphics inside a microVM on Apple Silicon.
+> • <img height="14" src="https://octicons-col.vercel.app/list-unordered/A770EF"> **[Awesome Microsandbox](https://github.com/ya-luotao/awesome-microsandbox) by ya-luotao**: Curated list of SDKs, integrations, tools, and resources.<br />
+> • <img height="14" src="https://octicons-col.vercel.app/device-desktop/A770EF"> **[msb-omarchy](https://github.com/ya-luotao/msb-omarchy) by ya-luotao**: Omarchy desktop with graphics inside a microVM on Apple Silicon.
 
 <br />
 
