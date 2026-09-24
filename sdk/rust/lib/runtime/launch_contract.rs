@@ -14,6 +14,8 @@ use std::{
     time::{Duration, SystemTime},
 };
 
+#[cfg(feature = "net")]
+use microsandbox_network::policy::{Action, Destination, Direction};
 use microsandbox_protocol::bootstrap::*;
 use microsandbox_runtime::launch::{LaunchCapabilities, LaunchConfig};
 use microsandbox_types::compat as types_compat;
@@ -102,7 +104,17 @@ impl LaunchContract {
                 return unsupported("multi-tenant network connection limits above 256");
             }
         }
-        if self.patch < 18 && network.strict {
+        if self.patch < 18
+            && network.strict
+            && network.policy.rules.iter().any(|rule| {
+                rule.action == Action::Allow
+                    && matches!(rule.direction, Direction::Egress | Direction::Any)
+                    && matches!(
+                        rule.destination,
+                        Destination::Domain(_) | Destination::DomainSuffix(_)
+                    )
+            })
+        {
             return unsupported("strict network authority");
         }
         if self.patch < 9 && network.rate_limiter.is_some() {
@@ -1484,10 +1496,91 @@ mod protocol {
 
     #[cfg(feature = "net")]
     #[test]
+    fn strict_hostname_allows_require_a_capable_launch_contract() {
+        use microsandbox_network::config::{EnvNetworkSecretResolver, NetworkConfig};
+        use microsandbox_network::policy::{Action, Destination, Direction, NetworkPolicy, Rule};
+
+        let encode = |launch: &LaunchConfig, contract: LaunchContract| contract.encode(launch);
+
+        for destination in [
+            Destination::Any,
+            Destination::Cidr("203.0.113.0/24".parse().unwrap()),
+            Destination::Domain("example.com".parse().unwrap()),
+            Destination::DomainSuffix("example.com".parse().unwrap()),
+        ] {
+            for direction in [Direction::Ingress, Direction::Egress, Direction::Any] {
+                for action in [Action::Allow, Action::Deny] {
+                    for strict in [true, false] {
+                        let network = NetworkConfig {
+                            strict,
+                            policy: NetworkPolicy {
+                                rules: vec![Rule {
+                                    direction,
+                                    action,
+                                    ..Rule::allow_egress(destination.clone())
+                                }],
+                                ..NetworkPolicy::default()
+                            },
+                            ..NetworkConfig::default()
+                        };
+                        let launch = LaunchConfig {
+                            network: Some(network.resolve(&EnvNetworkSecretResolver).unwrap()),
+                            ..Default::default()
+                        };
+                        let needs_strict = strict
+                            && action == Action::Allow
+                            && direction != Direction::Ingress
+                            && matches!(
+                                destination,
+                                Destination::Domain(_) | Destination::DomainSuffix(_)
+                            );
+                        for patch in 0..=18 {
+                            let result = encode(
+                                &launch,
+                                LaunchContract {
+                                    patch,
+                                    machine: false,
+                                },
+                            );
+                            if needs_strict && patch < 18 {
+                                assert!(
+                                    result
+                                        .unwrap_err()
+                                        .to_string()
+                                        .contains("strict network authority")
+                                );
+                            } else {
+                                let value = result.unwrap();
+                                let network = if patch >= 17 {
+                                    &value["network"]["config"]
+                                } else {
+                                    &value["network"]
+                                };
+                                assert_eq!(network["strict"], strict);
+                            }
+                        }
+                        assert_eq!(
+                            encode(
+                                &launch,
+                                LaunchContract {
+                                    patch: 18,
+                                    machine: true
+                                }
+                            )
+                            .unwrap(),
+                            serde_json::to_value(&launch).unwrap(),
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[cfg(feature = "net")]
+    #[test]
     fn flat_network_round_trip_preserves_disabled_network() {
         let mut value = serde_json::to_value(LaunchConfig::default()).unwrap();
-        value["network"] =
-            serde_json::json!({"config": {"enabled": false}, "outbound_proxy": null});
+        value["network"] = serde_json::json!({"config": {"enabled": false, "strict": false}, "outbound_proxy": null});
         let config: LaunchConfig = serde_json::from_value(value).unwrap();
         let bytes = encode_bytes(
             &config,
