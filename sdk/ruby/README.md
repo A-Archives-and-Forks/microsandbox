@@ -61,7 +61,7 @@ To build a platform gem from a checkout, install every target Ruby, then run
 from `sdk/ruby`:
 
 ```sh
-rake version_check cargo:patch_workspace
+rake cargo:patch_workspace version_check
 rake gem:stage # Once per installed Ruby, 3.1 through 4.0
 GEM_PLATFORM=arm64-darwin rake gem:platform
 ```
@@ -70,12 +70,12 @@ GEM_PLATFORM=arm64-darwin rake gem:platform
 `RUBY_ABIS` (for example `RUBY_ABIS=3.4`) to relax that when testing against a
 single local Ruby; CI never sets it.
 
-`cargo:patch_workspace` points the build at the in-tree Rust SDK and drops
-`ext/microsandbox/Cargo.lock`, which pins the published crate graph and cannot
-resolve against the patched path. When you are done, run
-`rake cargo:unpatch_workspace` — it removes the gitignored patch config (which
-would otherwise keep later local builds silently resolving against the in-tree
-SDK) and restores the lockfile.
+`cargo:patch_workspace` builds against the Rust SDK in this checkout and saves
+the standalone lockfile for restoration. Run it before `version_check` so you
+can build an unpublished release. The check still requires matching gem and
+extension versions and an exact Rust SDK pin, but skips the registry lockfile
+check. When finished, run `rake cargo:unpatch_workspace` to restore the lockfile
+and switch back to the published SDK.
 
 To use the local backend, install the microsandbox runtime and firmware once:
 
@@ -291,6 +291,11 @@ before any operation runs.
 
 ## Development
 
-The native extension is built against the published `microsandbox` Rust crate
-at the exact same version. `rake version_check` rejects non-exact requirements
-and version drift between the gem, native extension, and Rust SDK.
+The gem, native extension, and published Rust SDK must use the same version.
+`rake version_check` verifies their versions, the exact SDK pin, and the
+standalone lockfile's registry entry.
+
+After publishing the Rust SDK, the release workflow opens a PR to refresh
+`ext/microsandbox/Cargo.lock`. To refresh it manually, run
+`cargo update -p microsandbox --precise <version>` from `ext/microsandbox`,
+using the version pinned in `Cargo.toml` with no workspace patch active.
